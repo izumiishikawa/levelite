@@ -5,7 +5,7 @@ const Task = require('../models/tasks');
 const OpenAI = require('openai');
 const openai = new OpenAI({
   apiKey:
-    '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',
+    '',
 });
 
 const router = express.Router();
