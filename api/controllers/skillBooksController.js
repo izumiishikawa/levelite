@@ -4,9 +4,10 @@ const Profile = require('../models/profiles');
 const Task = require('../models/tasks');
 const SkillBook = require('../models/skillbook');
 const OpenAI = require('openai');
+const secret = require("../data/secret.json")
 const openai = new OpenAI({
   apiKey:
-    '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',
+    secret.apiKey,
 });
 
 const router = express.Router();
