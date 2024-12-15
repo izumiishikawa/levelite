@@ -43,6 +43,58 @@ export const consultPendingTasks = async (userId: string) => {
   }
 };
 
+export const setGeneratedToday = async (userId: string) => {
+  try {
+    const response = await axios.put(
+      `${url}/user/generated-today`,
+      { userId },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      }
+    );
+
+    switch (response.status) {
+      case 200:
+        console.log('User updated successfully:', response.data);
+        return response.data;
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    throw new Error('Failed to update generatedToday. Please try again later.');
+  }
+};
+
+
+export const setClassGeneratedToday = async (userId: string) => {
+  try {
+    const response = await axios.put(
+      `${url}/user/class-generated-today`,
+      { userId },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      }
+    );
+
+    switch (response.status) {
+      case 200:
+        console.log('User updated successfully:', response.data);
+        return response.data;
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    throw new Error('Failed to update generatedToday. Please try again later.');
+  }
+};
+
+
 export const restoreTask = async (taskId: string) => {
   try {
     const response = await axios.patch(
@@ -67,10 +119,30 @@ export const restoreTask = async (taskId: string) => {
   }
 };
 
-
 export const consultPenaltyTasks = async (userId: string) => {
   try {
     const response = await axios.get(`${url}/user/penalty-tasks?userId=${userId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+    });
+
+    switch (response.status) {
+      case 200:
+        return response.data;
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error while calling getInfo API ', error);
+    throw error;
+  }
+};
+
+export const consultClassTasks = async (userId: string) => {
+  try {
+    const response = await axios.get(`${url}/class/tasks?userId=${userId}`, {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
@@ -213,6 +285,30 @@ export const generateSkillBookTasks = async (bookId: string) => {
   }
 };
 
+export const generateClassTasks = async (userId: string, classId: string) => {
+  try {
+    const response = await axios.post(
+      `${url}/class/generate-class-tasks`,
+      { classId, userId },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      }
+    );
+
+    if (response.status === 201) {
+      return response.data;
+    } else {
+      throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error while creating skillbook', error);
+    throw error;
+  }
+};
+
 export const getUserSkillBooks = async (userId: string) => {
   try {
     const response = await axios.get(`${url}/skillbooks/user-skillbooks/${userId}`, {
@@ -274,7 +370,7 @@ export const createUserTask = async (taskData: {
   description: string;
   attribute: 'aura' | 'vitality' | 'focus';
   intensityLevel: 'low' | 'medium' | 'high';
-  recurrence: "daily" | 'weekly',
+  recurrence: 'daily' | 'weekly';
   xpReward: number;
 }) => {
   try {
@@ -318,16 +414,18 @@ export const deleteTask = async (taskId: string) => {
   }
 };
 
-
-
 export const generateAiTasks = async (userId: string) => {
   try {
-    const response = await axios.post(`${url}/user/generate-tasks`, { userId }, {
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-    });
+    const response = await axios.post(
+      `${url}/user/generate-tasks`,
+      { userId },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      }
+    );
 
     switch (response.status) {
       case 201: // Sucesso na criação da task

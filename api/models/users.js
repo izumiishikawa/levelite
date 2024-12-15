@@ -45,6 +45,27 @@ const usersSchema = new mongoose.Schema({
     default: 0,
   },
 
+  generatedToday: {
+    type: Boolean,
+    default: false,
+  },
+
+  classGeneratedToday: {
+    type: Boolean,
+    default: false,
+  },
+
+  selectedClass: {
+    type: String,
+    enum: ['shadow', 'guardian', 'visionary', 'titan', 'mindbreaker'],
+    default: null,
+  },
+
+  onboarded: {
+    type: Boolean,
+    default: false,
+  },
+
   // Atributos
   attributes: {
     aura: { type: Number, default: 1 },

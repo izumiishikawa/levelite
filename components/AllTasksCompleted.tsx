@@ -1,9 +1,52 @@
 import LottieView from 'lottie-react-native';
-import React, { useContext, useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useContext, useState, useEffect } from 'react';
+import { View, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import { AppUserContext } from '~/contexts/AppUserContext';
-import { updateStreak } from '~/services/api';
 import Text from './Text';
+import AnimatedRollingNumbers from './AnimatedRolling';
+
+const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+const StreakCalendar = ({ streak }: { streak: number }) => {
+  const todayIndex = new Date().getDay(); // Índice do dia atual da semana
+
+  // Calcula os dias retroativos para preencher com base no streak
+  const days = Array(7).fill(false); // Array de 7 dias (vazio por padrão)
+  const fillDays = Math.min(streak, 7); // O streak nunca ultrapassa 7 dias
+
+  for (let i = 0; i < fillDays; i++) {
+    const fillIndex = (todayIndex - i + 7) % 7; // Retroativo
+    days[fillIndex] = true;
+  }
+
+  // Reorganiza os labels para começar no dia correto retroativamente
+  const adjustedDayLabels = [
+    ...dayLabels.slice(todayIndex + 1),
+    ...dayLabels.slice(0, todayIndex + 1),
+  ];
+
+  return (
+    <View style={styles.streakCalendarContainer}>
+      {days.map((isFilled, index) => (
+        <View key={index} style={styles.streakDayContainer}>
+          <Text style={styles.dayLabel}>
+            {adjustedDayLabels[index % 7]}
+          </Text>
+          <View
+            style={[
+              styles.streakDot,
+              isFilled && styles.filledDot, // Aplica estilo preenchido
+            ]}
+          >
+            {isFilled && <Icon name="check" size={18} color="#FFFFFF" />}
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+};
+
 
 export default function AllTasksCompleted({ onComplete }: { onComplete: () => void }) {
   const { playerData } = useContext(AppUserContext);
@@ -11,31 +54,17 @@ export default function AllTasksCompleted({ onComplete }: { onComplete: () => vo
   const [showCoinSplash, setShowCoinSplash] = useState(false);
 
   useEffect(() => {
-    const initialize = async () => {
-      if (playerData && playerData._id) {
-        try {
-          await updateStreak(playerData._id); // Chama a função de atualização do streak
-        } catch (error) {
-          console.error('Erro ao atualizar o streak:', error);
-        }
-      }
+    const timer = setTimeout(() => {
+      setShowCoinSplash(true);
+    }, 2000);
 
-      // Define o delay para a animação do coinsplash
-      const timer = setTimeout(() => {
-        setShowCoinSplash(true);
-      }, 1000);
-
-      // Cleanup do timeout ao desmontar o componente
-      return () => clearTimeout(timer);
-    };
-
-    initialize();
+    return () => clearTimeout(timer);
   }, [playerData]);
 
   const steps = [
     {
       content: (
-        <View className="flex flex-col items-center">
+        <View style={styles.content}>
           <LottieView
             loop={false}
             autoPlay
@@ -53,29 +82,29 @@ export default function AllTasksCompleted({ onComplete }: { onComplete: () => vo
             />
           )}
           <Text style={styles.contentText}>
-            Você recebeu <Text style={styles.highlight}>{100} moedas</Text> por concluir suas
-            tarefas diárias!
+            You received <Text style={styles.highlight}>{100} coins</Text> for completing your daily tasks!
           </Text>
         </View>
       ),
     },
     {
       content: (
-        <View className="flex flex-col items-center z-50">
+        <View style={styles.content}>
           <LottieView
             loop={false}
             autoPlay
             renderMode="SOFTWARE"
-            style={styles.coinchest}
+            style={styles.streak}
             source={require('../assets/streak.json')}
           />
-          <Text className="text-6xl font-extrabold text-[#ff9600] drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]">
-            {(playerData?.streak + 1) || 0 + 1}
+          <Text style={styles.streakNumber}>
+            <AnimatedRollingNumbers value={playerData?.streak + 1} textColor='#FF9600' />
           </Text>
+          {/* <StreakCalendar streak={playerData?.streak || 0} /> */}
           <Text style={styles.contentTextStreak}>
-            {((playerData?.streak + 1) || 0) + 1 === 1
-              ? 'Você começou um novo streak! Continue completando suas tarefas diariamente para aumentar sua sequência.'
-              : `Parabéns! Seu streak agora é de ${(playerData?.streak + 1) || 0 + 1} dias consecutivos.`}
+            {(playerData?.streak + 1) === 1
+              ? 'You started a new streak! Keep completing your daily tasks to increase your streak.'
+              : `Congratulations! Your streak is now ${playerData?.streak + 1} consecutive days.`}
           </Text>
         </View>
       ),
@@ -86,37 +115,52 @@ export default function AllTasksCompleted({ onComplete }: { onComplete: () => vo
     if (currentStep < steps.length - 1) {
       setCurrentStep((prevStep) => prevStep + 1);
     } else {
-      onComplete(); // Chama a função passada ao componente
+      onComplete();
     }
   };
 
   return (
-    <View className="h-full w-full bg-[--background]" style={styles.container}>
-      {playerData && (
-        <>
-          <View style={styles.contentContainer}>{steps[currentStep].content}</View>
-          <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-            <Text style={styles.nextButtonText}>
-              {currentStep < steps.length - 1 ? 'Próximo' : 'Concluir'}
-            </Text>
-          </TouchableOpacity>
-        </>
-      )}
-    </View>
+    <Modal
+      visible={true}
+      animationType="slide"
+      onRequestClose={() => {}}
+      statusBarTranslucent
+    >
+      <View style={styles.overlay}>
+        {playerData && (
+          <>
+            <View style={styles.contentContainer}>{steps[currentStep].content}</View>
+            <View style={styles.nextButtonContainer}>
+              <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+                <Text style={styles.nextButtonText}>
+                  {currentStep < steps.length - 1 ? 'Next' : 'Finish'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#1E1E25',
-    alignItems: 'center',
+  overlay: {
+    flex: 1,
+    backgroundColor: '#17171C',
     justifyContent: 'center',
-    padding: 20,
+    alignItems: 'center',
   },
   contentContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: 20,
+    flex: 1,
+  },
+  content: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   contentText: {
     fontSize: 22,
@@ -124,6 +168,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     textAlign: 'center',
     lineHeight: 26,
+    marginTop: 20,
   },
   contentTextStreak: {
     fontSize: 18,
@@ -133,9 +178,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 26,
   },
+  streakNumber: {
+    fontSize: 60,
+    fontWeight: 'bold',
+    color: '#FF9600',
+    textAlign: 'center',
+    marginTop: 10,
+  },
   coinchest: {
     width: 200,
     height: 200,
+  },
+  streak: {
+    width: 300,
+    height: 300,
   },
   coinsplash: {
     position: 'absolute',
@@ -147,14 +203,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFD700',
   },
+  nextButtonContainer: {
+    position: 'absolute',
+    bottom: 20,
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
   nextButton: {
     backgroundColor: '#996DFF',
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 8,
-    marginBottom: 20,
     width: '100%',
-    display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -162,5 +223,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFFFFF',
+  },
+  streakCalendarContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  streakDayContainer: {
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  dayLabel: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  streakDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 100,
+    backgroundColor: '#444444',
+    display: "flex",
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filledDot: {
+    backgroundColor: '#FF9600',
   },
 });

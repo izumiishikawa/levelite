@@ -80,9 +80,9 @@ const ProfileBottomSheet: React.FC<ProfileBottomSheetProps> = ({ isOpen, onClose
   if (!isOpen) return null;
 
   const attributeInfo = [
-    { name: 'Aura', emoji: '🧠', key: 'aura', description: 'Habilidades mentais' },
-    { name: 'Vitalidade', emoji: '💪', key: 'vitality', description: 'Força física e energia' },
-    { name: 'Foco', emoji: '🎯', key: 'focus', description: 'Foco e consistência' },
+    { name: 'Aura', emoji: '🤝', key: 'aura', description: 'Sua aparência e presença física, habilidades sociais, [...]' },
+    { name: 'Vitalidade', emoji: '💪', key: 'vitality', description: 'Força física, resistência e energia.' },
+    { name: 'Foco', emoji: '🎯', key: 'focus', description: 'Habilidades mentais, estratégicas, [...]' },
   ] as const;
 
   type AttributeKey = (typeof attributeInfo)[number]['key'];
@@ -153,13 +153,13 @@ const ProfileBottomSheet: React.FC<ProfileBottomSheetProps> = ({ isOpen, onClose
 
                 {attributeInfo.map((attr) => (
                   <View key={attr.key} style={styles.attributeRow}>
-                    <View>
+                    <View className='w-[70%]'>
                       <Text style={styles.attributeName}>
                         {attr.emoji} {attr.name}
                       </Text>
-                      <Text style={styles.attributeDescription}>{attr.description}</Text>
+                      <Text numberOfLines={2} className='max-w-full' style={styles.attributeDescription}>{attr.description}</Text>
                     </View>
-                    <View style={styles.counter}>
+                    <View className='w-[30%] flex justify-center' style={styles.counter}>
                       <TouchableOpacity
                         onPress={() => handleRemovePoint(attr.key)}
                         disabled={attributes[attr.key] === (playerData?.attributes[attr.key] || 0)}

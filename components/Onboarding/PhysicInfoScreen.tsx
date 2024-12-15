@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import Text from '../Text';
+import Title from '../Title';
 
 interface PhysicInfoScreenProps {
-  onNext: (data: { height: string; weight: string; exerciseFrequency: string; exerciseIntensity: string }) => void;
+  onNext: (data: {
+    height: string;
+    weight: string;
+    exerciseFrequency: string;
+    exerciseIntensity: string;
+  }) => void;
   onPrevious: () => void;
 }
 
@@ -15,99 +21,127 @@ export const PhysicInfoScreen: React.FC<PhysicInfoScreenProps> = ({ onNext, onPr
   const [showExerciseIntensity, setShowExerciseIntensity] = useState(false);
 
   const frequencies = [
-    { label: "Sedentário", value: "sedentary" },
-    { label: "1-2 vezes por semana", value: "1-2" },
-    { label: "3-5 vezes por semana", value: "3-5" },
-    { label: "Diariamente", value: "daily" },
+    { label: 'Sedentary', value: 'sedentary' },
+    { label: '1-2 times per week', value: '1-2' },
+    { label: '3-5 times per week', value: '3-5' },
+    { label: 'Daily', value: 'daily' },
   ];
 
   const intensities = [
-    { label: "Leve", value: "low" },
-    { label: "Moderada", value: "medium" },
-    { label: "Intensa", value: "hard" },
+    { label: 'Light', value: 'low' },
+    { label: 'Moderate', value: 'medium' },
+    { label: 'Intense', value: 'hard' },
   ];
 
   const handleNext = () => {
-    if (height && weight && exerciseFrequency && (exerciseFrequency === "sedentary" || exerciseIntensity)) {
+    if (
+      height &&
+      weight &&
+      exerciseFrequency &&
+      (exerciseFrequency === 'sedentary' || exerciseIntensity)
+    ) {
       onNext({ height, weight, exerciseFrequency, exerciseIntensity });
     }
   };
 
-  const allFieldsFilled = height && weight && exerciseFrequency && (exerciseFrequency === "sedentary" || exerciseIntensity);
+  const allFieldsFilled =
+    height &&
+    weight &&
+    exerciseFrequency &&
+    (exerciseFrequency === 'sedentary' || exerciseIntensity);
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", alignItems: "center" }} className="w-[90%] p-6">
-      <Text className="text-white text-2xl font-bold text-center mb-4 mt-24">Informações Físicas</Text>
+    <ScrollView
+      contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-start' }}
+      className="w-full">
+      <View className="mt-32 w-[80%] mx-auto">
+        <Title text="Your Physical Information" />
+      </View>
+      {/* Height Input */}
+      <View className="w-[100%]">
+        <Text className="mb-2 mt-10 mx-auto text-[#B8B8B8]">Height (in cm)</Text>
+        <View className="relative w-full">
+          <TextInput
+            value={height}
+            onChangeText={setHeight}
+            keyboardType="numeric"
+            placeholder="Ex: 175"
+            placeholderTextColor="#7D7D7D"
+            className="w-full pl-16 bg-[--foreground] py-4 text-white"
+          />
+          <View className="absolute bottom-[-6px] right-[-12px] h-20 w-10 rotate-[15deg] bg-[--background]" />
+          <View className="absolute bottom-[-6px] left-[-12px] h-20 w-10 rotate-[15deg] bg-[--background]" />
+        </View>
 
-      {/* Input de Altura */}
-      <Text className="text-[#B8B8B8] mb-2">Altura (em cm)</Text>
-      <TextInput
-        value={height}
-        onChangeText={setHeight}
-        keyboardType="numeric"
-        placeholder="Ex: 175"
-        placeholderTextColor="#7D7D7D"
-        className="bg-[--foreground] text-white p-4 w-full mb-4 rounded-md"
-      />
+        {/* Weight Input */}
+        <Text className="mb-2 mx-auto mt-5 text-[#B8B8B8]">Weight (in kg)</Text>
+        <View className="relative w-full">
+          <TextInput
+            value={weight}
+            onChangeText={setWeight}
+            keyboardType="numeric"
+            placeholder="Ex: 70"
+            placeholderTextColor="#7D7D7D"
+            className="w-full pl-16 bg-[--foreground] py-4 text-white"
+          />
+          <View className="absolute bottom-[-6px] right-[-12px] h-20 w-10 rotate-[15deg] bg-[--background]" />
+          <View className="absolute bottom-[-6px] left-[-12px] h-20 w-10 rotate-[15deg] bg-[--background]" />
+        </View>
+      </View>
 
-      {/* Input de Peso */}
-      <Text className="text-[#B8B8B8] mb-2">Peso (em kg)</Text>
-      <TextInput
-        value={weight}
-        onChangeText={setWeight}
-        keyboardType="numeric"
-        placeholder="Ex: 70"
-        placeholderTextColor="#7D7D7D"
-        className="bg-[--foreground] text-white p-4 w-full mb-4 rounded-md"
-      />
-
-      {/* Frequência de Exercícios */}
-      <Text className="text-[#B8B8B8] mb-2">Frequência de Exercícios</Text>
+      {/* Exercise Frequency */}
+      <Text className="mb-2 mt-10 mx-auto text-[#B8B8B8]">Exercise Frequency</Text>
       {frequencies.map((freq) => (
         <TouchableOpacity
           key={freq.value}
           onPress={() => {
             setExerciseFrequency(freq.value);
-            setShowExerciseIntensity(freq.value !== "sedentary");
-            if (freq.value === "sedentary") {
-              setExerciseIntensity(""); // Limpa a intensidade se for sedentário
+            setShowExerciseIntensity(freq.value !== 'sedentary');
+            if (freq.value === 'sedentary') {
+              setExerciseIntensity(''); // Clear intensity if sedentary
             }
           }}
-          className={`w-full py-4 my-1 rounded-md ${exerciseFrequency === freq.value ? 'bg-[--accent]' : 'bg-[--foreground]'}`}
-        >
-          <Text className="text-white font-semibold text-center">{freq.label}</Text>
+          className={`relative my-1 mb-4 flex items-center justify-start self-start py-4 uppercase ${exerciseFrequency === freq.value ? "w-full" : "w-[90%]"} ${
+            exerciseFrequency === freq.value ? 'bg-[--accent]' : 'bg-[--foreground]'
+          }`}>
+          <Text className="text-md font-semibold uppercase text-white">{freq.label}</Text>
+          <View className="absolute bottom-[-6px] right-[-12px] h-16 w-10 rotate-[15deg] bg-[--background]" />
         </TouchableOpacity>
       ))}
 
-      {/* Intensidade do Exercício (Apenas se não for Sedentário) */}
+      {/* Exercise Intensity (If not Sedentary) */}
       {showExerciseIntensity && (
         <>
-          <Text className="text-[#B8B8B8] mb-2 mt-4">Intensidade do Exercício</Text>
+          <Text className="mb-2 mt-4 mx-auto text-[#B8B8B8]">Exercise Intensity</Text>
           {intensities.map((intensity) => (
             <TouchableOpacity
               key={intensity.value}
               onPress={() => setExerciseIntensity(intensity.value)}
-              className={`w-full py-4 my-1 rounded-md ${exerciseIntensity === intensity.value ? 'bg-[--accent]' : 'bg-[--foreground]'}`}
-            >
-              <Text className="text-white font-semibold text-center">{intensity.label}</Text>
+              className={`relative my-1 mb-4 flex ${exerciseIntensity === intensity.value ? "w-full" : "w-[90%]"} items-center justify-start self-start py-4 uppercase ${
+                exerciseIntensity === intensity.value ? 'bg-[--accent]' : 'bg-[--foreground]'
+              }`}>
+              <Text className="text-md font-semibold uppercase text-white">{intensity.label}</Text>
+              <View className="absolute bottom-[-6px] right-[-12px] h-16 w-10 rotate-[15deg] bg-[--background]" />
             </TouchableOpacity>
           ))}
         </>
       )}
 
-      {/* Botões de Navegação */}
-      <View className="flex flex-col justify-between w-full mt-6 mb-12 gap-2">
-      <TouchableOpacity
+      {/* Navigation Buttons */}
+      <View className="bottom-10 mt-12 flex w-[80%] mx-auto flex-col justify-between gap-2">
+        <TouchableOpacity
           onPress={handleNext}
-          className={`w-full p-4 rounded-md items-center ${allFieldsFilled ? 'bg-[--accent]' : 'bg-gray-500 opacity-50'}`}
-          disabled={!allFieldsFilled}
-        >
-          <Text className="text-white font-bold">Próximo</Text>
+          className={`w-full rounded-md py-4 ${
+            allFieldsFilled ? 'bg-[--accent]' : 'bg-gray-500 opacity-50'
+          } flex items-center justify-center`}
+          disabled={!allFieldsFilled}>
+          <Text className="font-semibold text-white">Next</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={onPrevious} className="w-full bg-[--foreground] p-4 rounded-md items-center">
-          <Text className="text-white font-bold">Voltar</Text>
+        <TouchableOpacity
+          onPress={onPrevious}
+          className="flex w-full items-center justify-center rounded-md bg-[--foreground] py-4">
+          <Text className="font-semibold text-white">Back</Text>
         </TouchableOpacity>
-        
       </View>
     </ScrollView>
   );

@@ -1,29 +1,47 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { View, ActivityIndicator, Image } from 'react-native';
+import { View, ActivityIndicator, Image, Animated } from 'react-native';
 import Text from '../Text';
 import { TaskCard } from '../TaskCard';
 import { AppUserContext } from '~/contexts/AppUserContext';
-import { consultPendingTasks, consultPenaltyTasks, generateAiTasks } from '~/services/api';
+import {
+  consultPendingTasks,
+  consultPenaltyTasks,
+  consultClassTasks,
+  generateAiTasks,
+  setGeneratedToday,
+  completeTask,
+  restoreTask,
+  deleteTask,
+} from '~/services/api';
 import Swipable from './Swipable';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import AnimatedRollingNumbers from '../AnimatedRolling';
 import AllTasksCompleted from '../AllTasksCompleted';
+import LevelUpAlert from '../LevelUpAlert';
+import LottieView from 'lottie-react-native';
 
-export const TaskWrapper: React.FC = () => {
+interface TaskWrapperProps {
+  taskType: 'daily' | 'user' | 'class'; // Define os tipos de tarefa
+  refreshSignal: number;
+}
+
+export const TaskWrapper: React.FC<TaskWrapperProps> = ({ taskType, refreshSignal }) => {
   const { playerData, setPlayerData } = useContext(AppUserContext);
   const [currentTasks, setCurrentTasks] = useState<any[]>([]);
   const [inPenaltyZone, setInPenaltyZone] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState<string>('');
-  const [allTasksDone, setAllTasksDone] = useState(false);
+  const [animations, setAnimations] = useState<Animated.Value[]>([]);
+  const [allTasksCompleted, setAllTasksCompleted] = useState(false);
+  const [leveledUp, setLeveledUp] = useState(false);
 
   const calculateTimeLeft = () => {
     const now = new Date();
     const resetTime = new Date();
-    resetTime.setHours(23, 55, 0, 0); // Define o horário de reset (23:00)
+    resetTime.setHours(23, 55, 0, 0);
 
-    const diff = resetTime.getTime() - now.getTime(); // Calcula a diferença em milissegundos
-    if (diff <= 0) return '00:00:00'; // Se já passou das 23h, retorna zero.
+    const diff = resetTime.getTime() - now.getTime();
+    if (diff <= 0) return '00:00:00';
 
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -39,42 +57,52 @@ export const TaskWrapper: React.FC = () => {
       setTimeLeft(calculateTimeLeft());
     }, 1000);
 
-    return () => clearInterval(timer); // Limpa o intervalo quando o componente desmontar
+    return () => clearInterval(timer);
   }, []);
 
   const fetchTasks = async () => {
     if (!playerData) return;
 
-    setIsLoading(true);
-
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const lastGeneratedDate = await AsyncStorage.getItem('lastGeneratedDate');
-
-      // Define se estamos na zona de penalidade
-      const isPenaltyZone = playerData.inPenaltyZone;
-      setInPenaltyZone(isPenaltyZone);
-
-      // Verifica se as tarefas já foram geradas hoje
-      if (lastGeneratedDate === today) {
-        // Recupera as tarefas pendentes existentes
-        const pendingTasks = await consultPendingTasks(playerData._id);
-        setCurrentTasks(pendingTasks);
-      } else {
-        // Gera novas tarefas
-        if (isPenaltyZone) {
-          const penaltyTasks = await consultPenaltyTasks(playerData._id);
-          setCurrentTasks(penaltyTasks);
+      let tasks = [];
+      if (taskType === 'daily') {
+        if (playerData.inPenaltyZone) {
+          tasks = await consultPenaltyTasks(playerData._id);
+          tasks = tasks.filter((task: any) => task.type === 'penaltyTask');
         } else {
-          const generatedTasks = await generateAiTasks(playerData._id);
-          setCurrentTasks(generatedTasks);
-        }
+          if (!playerData.generatedToday) {
+            setIsLoading(true);
+            await setGeneratedToday(playerData._id);
+            await generateAiTasks(playerData._id);
+            setIsLoading(false);
+          }
 
-        // Atualiza o AsyncStorage com a nova data
-        await AsyncStorage.setItem('lastGeneratedDate', today);
+          tasks = await consultPendingTasks(playerData._id);
+          tasks = tasks.filter((task: any) => task.type === 'dailyQuests');
+        }
+      } else if (taskType === 'user') {
+        tasks = await consultPendingTasks(playerData._id);
+        tasks = tasks.filter((task: any) => task.type === 'userTask');
+      } else if (taskType === 'class') {
+        tasks = await consultClassTasks(playerData._id);
+        tasks = tasks.filter((task: any) => task.type === 'classQuests');
       }
+
+      setCurrentTasks(tasks);
+
+      const initialAnimations = tasks.map(() => new Animated.Value(-500));
+      setAnimations(initialAnimations);
+
+      initialAnimations.forEach((animation: Animated.Value | Animated.ValueXY, index: number) => {
+        Animated.timing(animation, {
+          toValue: 0,
+          duration: 500,
+          delay: index * 150,
+          useNativeDriver: true,
+        }).start();
+      });
     } catch (error) {
-      console.error('Erro ao buscar ou gerar tarefas:', error);
+      console.error('Erro ao buscar tarefas:', error);
     } finally {
       setIsLoading(false);
     }
@@ -82,101 +110,177 @@ export const TaskWrapper: React.FC = () => {
 
   useEffect(() => {
     fetchTasks();
-  }, [playerData]);
+  }, [taskType]); // Refetch tasks when taskType changes
 
-  const handleTaskCompletion = (taskId: string) => {
-    setCurrentTasks((prevTasks) => prevTasks.filter((task) => task._id !== taskId));
-    fetchTasks();
+  const completeCurrentTask = async (taskId: string) => {
+    try {
+      const data = await completeTask(taskId, playerData._id);
+
+      if (data.allTasksCompleted) {
+        setAllTasksCompleted(true);
+      }
+
+      if (data.leveledUp === true) {
+        setLeveledUp(true);
+      }
+
+      setPlayerData((prevPlayerData) => ({
+        ...prevPlayerData,
+        currentXP: data.user.currentXP,
+        level: data.user.level,
+        pointsToDistribute: data.user.pointsToDistribute,
+        xpForNextLevel: data.user.xpForNextLevel,
+        attributes: {
+          ...prevPlayerData.attributes,
+          ...data.user.attributes,
+        },
+      }));
+    } catch (err) {
+      console.error('Erro ao completar tarefa:', err);
+    }
   };
 
-  // Organiza as tarefas para exibir as 'pending' antes das 'completed'
-  const sortedTasks = currentTasks.sort((a, b) => {
-    if (a.status === 'pending' && b.status === 'completed') return -1;
-    if (a.status === 'completed' && b.status === 'pending') return 1;
-    return 0;
-  });
+  const restoreCurrentTask = async (taskId: string) => {
+    try {
+      const data = await restoreTask(taskId);
+
+      setPlayerData((prevPlayerData) => ({
+        ...prevPlayerData,
+        currentXP: data.user.currentXP,
+        level: data.user.level,
+        pointsToDistribute: data.user.pointsToDistribute,
+        xpForNextLevel: data.user.xpForNextLevel,
+      }));
+    } catch (err) {
+      console.error('Erro ao restaurar tarefa:', err);
+    }
+  };
+
+  const handleTaskCompletion = (taskId: string) => {
+    setCurrentTasks((prevTasks) =>
+      prevTasks.map((task) => (task._id === taskId ? { ...task, status: 'completed' } : task))
+    );
+
+    setTimeout(() => {
+      completeCurrentTask(taskId);
+    }, 500);
+  };
+
+  const handleTaskRestoring = (taskId: string) => {
+    setCurrentTasks((prevTasks) =>
+      prevTasks.map((task) => (task._id === taskId ? { ...task, status: 'pending' } : task))
+    );
+
+    setTimeout(() => {
+      restoreCurrentTask(taskId);
+    }, 500);
+  };
+
+  const handleTaskRemoval = async (taskId: string) => {
+    setCurrentTasks((prevTasks) => prevTasks.filter((task) => task._id !== taskId));
+
+    await deleteTask(taskId);
+  };
+
+  const getTaskImageSource = () => {
+    if (playerData.inPenaltyZone) {
+      return require('../../assets/penalty.png');
+    }
+    switch (taskType) {
+      case 'daily':
+        return require('../../assets/dailytitle.png');
+      case 'class':
+        return require('../../assets/classtasks.png');
+      default:
+        return require('../../assets/customtasks.png');
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, [refreshSignal]); // Reexecuta ao mudar o sinal
 
   return (
-    <View className="mb-20 mt-10">
-      <View className="relative w-full flex-col items-center justify-center">
-        <View className="absolute top-0 z-[-2] h-full w-[510%] rotate-[12deg] bg-[--secondary]" />
-        <View className="absolute top-0 z-[-1] h-full w-[205%] rotate-[7deg] bg-[--foreground]" />
+    <>
+      {allTasksCompleted && <AllTasksCompleted onComplete={() => setAllTasksCompleted(false)} />}
+      <LevelUpAlert
+        visible={leveledUp}
+        level={playerData?.level}
+        onClose={() => setLeveledUp(false)}
+      />
+      <View className="mb-20 mt-10">
+        <View className="relative w-full flex-col items-center justify-center">
+          <View className="absolute top-0 z-[-2] h-full w-[510%] rotate-[12deg] bg-[--secondary]" />
+          <View className="absolute top-0 z-[-1] h-full w-[205%] rotate-[7deg] bg-[--foreground]" />
 
-        <View className="z-10 flex w-full flex-col items-center py-6 text-white">
-          <View className="flex w-full flex-col items-center gap-2 py-6 text-center">
-            <Image
-              className="absolute right-5 -top-12"
-              source={require('../../assets/dailytitle.png')}
-              style={{
-                width: 270,
-                height: 100,
-              }}
-            />
-            {/* <View className="flex flex-row items-center justify-center gap-2">
-              <Icon name="alert-circle-outline" size={30} color="#fff" />
+          <View className="z-10 flex w-full flex-col items-center py-6 text-white">
+            <View className="flex w-full flex-col items-center gap-2 py-6 text-center">
+              <Image
+                className="absolute -top-12 right-5"
+                source={getTaskImageSource()}
+                style={{
+                  width: 270,
+                  height: 100,
+                }}
+              />
 
-              <Text black className="text-2xl text-white">
-                {inPenaltyZone ? 'ZONA DE PENALIDADE' : 'DAILY QUESTS'}
-              </Text>
-            </View>
+              {isLoading && (
+                <View className='flex flex-col items-center w-full mt-20'>
+                  <Text className="text-white mb-5" bold>
+                    Gerando Tarefas Diárias..
+                  </Text>
+                  <LottieView
+                    source={require('../../assets/loading4.json')} // Substitua pelo arquivo JSON da animação
+                    autoPlay
+                    loop
+                    style={{ width: 100, height: 100 }}
+                  />
+                </View>
+              )}
 
-            <Text className="text-[#B8B8B8]">
-              {inPenaltyZone
-                ? 'Complete suas penalidades para sair da zona de penalidade'
-                : 'Complete as missões para ganhar EXP'}
-            </Text> */}
+              <View className="mb-10 mt-20 flex w-[95%] flex-col gap-4">
+                {(currentTasks || []).length > 0
+                  ? (currentTasks || []).map((taskInfo: any, index: number) => (
+                      <Animated.View
+                        key={taskInfo._id}
+                        style={{ transform: [{ translateX: animations[index] || 0 }] }}>
+                        <TaskCard
+                          title={taskInfo.title}
+                          description={taskInfo.description}
+                          xpReward={taskInfo.xpReward}
+                          attribute={taskInfo.attribute}
+                          intensityLevel={taskInfo.intensityLevel}
+                          status={taskInfo.status}
+                          onComplete={() => handleTaskCompletion(taskInfo._id)}
+                          onRestore={() => handleTaskRestoring(taskInfo._id)}
+                          onDelete={() => handleTaskRemoval(taskInfo._id)}
+                          isDefault={!inPenaltyZone}
+                        />
+                      </Animated.View>
+                    ))
+                  : !isLoading && (
+                      <Text className="mx-auto text-[#B8B8B8]">No tasks found.</Text>
+                    )}
+              </View>
+              {!inPenaltyZone && taskType === 'daily' && (currentTasks || []).length > 0 && (
+                <View className="mb-14 flex w-full flex-col items-center gap-6">
+                  <Text className=" w-[85%] text-center text-white">
+                  WARNING: Failure to complete daily missions will result in severe{' '}
+                    <Text className="font-extrabold text-[#ED6466]">Penalities</Text>
+                  </Text>
 
-            <View className="mt-12 flex w-[95%] flex-col gap-4">
-              {sortedTasks.filter((task) => task.type === 'dailyQuests').length > 0 ? (
-                sortedTasks
-                  .filter((task) => task.type === 'dailyQuests')
-                  .map((taskInfo: any, index: number) => (
-                    <Swipable
-                      key={taskInfo._id}
-                      taskId={taskInfo._id}
-                      userId={taskInfo.userId}
-                      expPoints={taskInfo.xpReward}
-                      backgroundColor="#1E1E25"
-                      onSwipeComplete={() => handleTaskCompletion(taskInfo._id)}
-                      currentStatus={taskInfo.status}
-                      onAllTasksCompleted={() =>
-                        setPlayerData((prevPlayerData) => ({
-                          ...prevPlayerData,
-                          allTasksDone: true,
-                        }))
-                      }>
-                      <TaskCard
-                        title={taskInfo.title}
-                        xpReward={taskInfo.xpReward}
-                        attribute={taskInfo.attribute}
-                        intensityLevel={taskInfo.intensityLevel}
-                        status={taskInfo.status}
-                        isDefault={!inPenaltyZone}
-                      />
-                    </Swipable>
-                  ))
-              ) : (
-                <Text className="mx-auto my-10 text-[#B8B8B8]">...</Text>
+                  <View className="mb-4 flex flex-row items-center gap-2">
+                    <Icon name="timer-sand" size={40} color="#fff" />
+                    <Text bold className="text-4xl text-white">
+                      {timeLeft}
+                    </Text>
+                  </View>
+                </View>
               )}
             </View>
           </View>
         </View>
-        {!inPenaltyZone && sortedTasks.filter((task) => task.type === 'dailyQuests').length > 0 && (
-          <View className="mb-20 flex w-full flex-col items-center gap-6">
-            <Text className=" w-[85%] text-center text-white">
-              AVISO: O não cumprimento das missões diárias resultará em sua devida{' '}
-              <Text className="font-extrabold text-[#ED6466]">Penalidade</Text>
-            </Text>
-
-            <View className="mb-4 flex flex-row items-center gap-2">
-              <Icon name="timer-sand" size={40} color="#fff" />
-              <Text bold className="text-4xl text-white">
-                {timeLeft}
-              </Text>
-            </View>
-          </View>
-        )}
       </View>
-    </View>
+    </>
   );
 };

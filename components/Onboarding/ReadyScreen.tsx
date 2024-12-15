@@ -43,17 +43,17 @@ export const ReadyScreen: React.FC<ReadyScreenProps> = ({ onNext }) => {
       {!accepted ? (
         <View className="w-full text-center justify-center items-center">
           <Text className="text-md text-center text-[#B8B8B8]">
-            Você se qualificou para se tornar um{' '}
-            <Text className="font-bold text-white">Jogador</Text>
+          Congratulations! You have proven yourself worthy and officially qualified as a{' '}
+            <Text className="font-bold text-white">Player</Text>
           </Text>
-          <Text className='text-sm text-[#B8B8B8]'>Você aceita essa missão?</Text>
+          <Text className='text-sm text-[#B8B8B8] mt-2'>Do you accept this challenge?</Text>
           <TouchableOpacity onPress={handleAccept} className="mt-10 rounded-md bg-[--accent] flex justify-center items-center w-full px-6 py-3">
-            <Text className="text-lg font-semibold text-white">EU ACEITO</Text>
+            <Text className="text-lg font-semibold text-white">I ACCEPT</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <>
-          <Text className='text-white'>Parabéns! Você se tornou um jogador.</Text>
+          <Text className='text-white'>Welcome aboard, Player.</Text>
 
           <View className='flex flex-row justify-center items-center text-center'>
             <Text style={{paddingLeft: 50, fontSize: 48, fontWeight: 'bold', color: 'white' }}>

@@ -29,6 +29,9 @@ import { OnboardingScreens } from '../components/Onboarding/OnboardingScreens';
 import LevelUpAlert from '~/components/LevelUpAlert';
 import AllTasksCompleted from '~/components/AllTasksCompleted';
 import * as SplashScreen from 'expo-splash-screen';
+import { View } from 'react-native';
+import Text from '~/components/Text';
+import HimariScreen from '~/components/Onboarding/HimariIntroduction';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -38,67 +41,55 @@ export default function RootLayout() {
   useInitialAndroidBarSync();
   const { colorScheme } = useColorScheme();
   const [playerData, setPlayerData] = useState<any>(null);
-  const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
   const [allTasksDone, setAllTasksDone] = useState(false);
+  const [newLevel, setNewLevel] = useState(0);
+  const [showHimari, setShowHimari] = useState(false); // Exibição da Himari
 
-  const [isLevelUp, setIsLevelUp] = useState(false); // Estado para o alerta
-  const [newLevel, setNewLevel] = useState(playerData?.level || 0); // Inicializa com o nível atual ou 0
-
-  useEffect(() => {
-    const checkFirstLaunch = async () => {
-      const hasLaunched = await AsyncStorage.getItem('hasLaunched');
-      if (hasLaunched === null) {
-        setIsFirstLaunch(true);
-        await AsyncStorage.setItem('hasLaunched', 'true');
-      } else {
-        setIsFirstLaunch(false);
-      }
-    };
-    checkFirstLaunch();
-  }, []);
-
-
-  useEffect(() => {
-    if (playerData?.allTasksDone === true) {
-      setAllTasksDone(true);
-    }
-  }, [playerData?.allTasksDone]);
-
-  const prepareApp = async () => {
+  const initializePlayerData = async () => {
     try {
       const storedPlayerData = await consultPlayerStatus('673666aaec06d31576b6f4eb');
-      console.log(storedPlayerData)
-
-      // Verifica se o jogador subiu de nível
-      if (storedPlayerData.level > playerData?.level) {
-        setNewLevel(storedPlayerData.level);
-        setIsLevelUp(true); // Mostra o alerta
-      }
-
       if (storedPlayerData) {
         setPlayerData(storedPlayerData);
       }
     } catch (err) {
-      console.error('Erro ao preparar o app:', err);
+      console.error('Erro ao buscar dados do jogador:', err);
     } finally {
-      await setTimeout(() => SplashScreen.hideAsync(), 1000);
+      SplashScreen.hideAsync();
+    }
+  };
+
+  const checkFirstLaunch = async () => {
+    const hasLaunched = await AsyncStorage.getItem('hasLaunched');
+    if (!hasLaunched) {
+      await AsyncStorage.setItem('hasLaunched', 'true');
+      setPlayerData((prev: any) => ({ ...prev, onboarded: false }));
+    } else {
+      initializePlayerData();
     }
   };
 
   useEffect(() => {
-    if (isFirstLaunch === false) {
-      prepareApp();
-    }
-  }, [isFirstLaunch]);
+    checkFirstLaunch();
+  }, []);
 
-  useEffect(() => {
-    if (playerData?.level && playerData.level > newLevel) {
-      setNewLevel(playerData.level);
-      setIsLevelUp(true); // Mostra o alerta
+  const handleOnboardingComplete = async () => {
+    try {
+      const updatedPlayerData = {
+        ...playerData,
+        onboarded: true,
+      };
+      setPlayerData(updatedPlayerData);
+      setShowHimari(true); // Exibe Himari após o onboarding
+    } catch (error) {
+      console.error('Erro ao finalizar o onboarding:', error);
     }
-  }, [playerData?.level]); // Executa sempre que o nível do jogador mudar
+  };
 
-  const [loaded, error] = useFonts({
+  const handleHimariNext = () => {
+    setShowHimari(false); // Sai da tela Himari
+  };
+
+  const [fontsLoaded, fontsError] = useFonts({
     Inter_100Thin,
     Inter_200ExtraLight,
     Inter_300Light,
@@ -111,40 +102,42 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (loaded || error) {
+    if (fontsLoaded || fontsError) {
       SplashScreen.hideAsync();
     }
-  }, [loaded, error]);
+  }, [fontsLoaded, fontsError]);
 
-  if (!loaded && !error) {
-    return null;
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: '#fff', fontSize: 16 }}>Carregando...</Text>
+      </View>
+    );
   }
 
+  if (!playerData) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: '#fff', fontSize: 16 }}>Carregando jogador...</Text>
+      </View>
+    );
+  }
 
-  if (isFirstLaunch === true) {
-    return <OnboardingScreens onComplete={() => setIsFirstLaunch(false)} />;
+  if (!playerData.onboarded) {
+    return <OnboardingScreens onComplete={handleOnboardingComplete} />;
   }
 
   return (
     <AppUserContext.Provider value={{ playerData, setPlayerData }}>
-      <StatusBar key={`root-status-bar-dark`} style={'light'} />
+      <StatusBar style="light" />
       <GestureHandlerRootView style={{ flex: 1 }}>
         <BottomSheetModalProvider>
           <ActionSheetProvider>
             <NavThemeProvider value={NAV_THEME[colorScheme]}>
-              {allTasksDone && (
-                <AllTasksCompleted onComplete={() => setAllTasksDone(false)} />
-              )}
-              <LevelUpAlert
-                visible={isLevelUp}
-                level={newLevel}
-                onClose={() => {
-                  setIsLevelUp(false);
-                }}
-              />
               <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="(tabs)" />
               </Stack>
+              {showHimari && <HimariScreen onNext={handleHimariNext} />}
             </NavThemeProvider>
           </ActionSheetProvider>
         </BottomSheetModalProvider>

@@ -36,7 +36,6 @@ const Swipable: React.FC<SwipableProps> = (props) => {
   const [loaded, setLoaded] = useState(false);
   const [showExpText, setShowExpText] = useState(false);
   const [showDeleteText, setShowDeleteText] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
 
   // Valores compartilhados para animar opacidade e escala do texto
   const textOpacity = useSharedValue(0);
@@ -130,7 +129,7 @@ const Swipable: React.FC<SwipableProps> = (props) => {
     try {
       // Chama a API para restaurar a tarefa e recebe os novos dados do usuário
       const data = await restoreTask(props.taskId);
-  
+
       // Atualiza o estado do jogador com os novos dados recebidos
       setPlayerData((prevPlayerData) => {
         return {
@@ -141,7 +140,7 @@ const Swipable: React.FC<SwipableProps> = (props) => {
           xpForNextLevel: data.user.xpForNextLevel,
         };
       });
-  
+
       // Chama a função de callback quando o swipe for concluído
       if (props.onSwipeComplete) {
         runOnJS(props.onSwipeComplete)();
@@ -150,12 +149,10 @@ const Swipable: React.FC<SwipableProps> = (props) => {
       console.error('Erro ao restaurar tarefa:', err);
     }
   };
-  
+
   const closeHeightAfterDelay = (action: 'complete' | 'delete') => {
     setTimeout(() => {
-      scaleX.value = withTiming(0, { duration: 300 }, () => {
-        runOnJS(setIsVisible)(false); // Define o estado como falso após a animação
-      });
+      translateX.value = withTiming(0, { duration: 300 }, () => {});
       setShowExpText(false);
       setShowDeleteText(false);
 
@@ -220,10 +217,6 @@ const Swipable: React.FC<SwipableProps> = (props) => {
   }));
 
   const backgroundColor = props.backgroundColor || '#2A2A35';
-
-  if (!isVisible) {
-    return null; // Não renderiza nada se o componente não estiver visível
-  }
 
   return (
     <PanGestureHandler

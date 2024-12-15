@@ -9,10 +9,10 @@ import { AppUserContext } from '~/contexts/AppUserContext';
 import { TaskWrapper } from '~/components/DailyTasks/TaskWrapper';
 import { consultPlayerStatus } from '~/services/api';
 import CreateTask from '~/components/CreateTask';
-import { UserTaskWrapper } from '~/components/UserTaskWrapper';
 import LevelUpAlert from '~/components/LevelUpAlert';
 import AllTasksCompleted from '~/components/AllTasksCompleted';
 import { Calendar } from '~/components/Calendar';
+import 'react-native-reanimated';
 
 // Definição dos tipos de atributos
 type Attributes = {
@@ -29,6 +29,7 @@ type PlayerData = {
 export default function Index() {
   const { playerData, setPlayerData } = useContext(AppUserContext);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [refreshSignal, setRefreshSignal] = useState(0);
 
   const navigation = useNavigation();
   const attributeIcons: { [key in keyof Attributes]: string } = {
@@ -43,15 +44,19 @@ export default function Index() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      const updatedPlayerData = await consultPlayerStatus('673666aaec06d31576b6f4eb');
-
+      // Atualize os dados do jogador
+      const updatedPlayerData = await consultPlayerStatus(playerData._id);
       setPlayerData(updatedPlayerData);
+
+      // Emita o sinal para os TaskWrappers
+      setRefreshSignal((prev) => prev + 1);
     } catch (error) {
-      console.error('Failed to refresh player data:', error);
+      console.error('Erro ao atualizar dados do jogador:', error);
     } finally {
       setIsRefreshing(false);
     }
   };
+
 
   if (!playerData) {
     // Exibe um indicador de carregamento enquanto os dados do jogador não estão disponíveis
@@ -77,18 +82,26 @@ export default function Index() {
           <Container>
             <Calendar />
             <GeneralLevel />
-            <TaskWrapper />
-            <UserTaskWrapper />
+            <TaskWrapper refreshSignal={refreshSignal} taskType="daily" />
+
+            {playerData.inPenaltyZone === false && (
+              <>
+                <TaskWrapper refreshSignal={refreshSignal} taskType="class" />
+                <TaskWrapper refreshSignal={refreshSignal} taskType="user" />
+              </>
+            )}
           </Container>
         </View>
       </ScrollView>
 
       {/* Botão para criar tarefas */}
-      <TouchableOpacity
-        className="absolute bottom-28 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-[--accent] shadow-lg"
-        onPress={() => setIsCreateOpen(!isCreateOpen)}>
-        <Text className="text-2xl font-bold text-white">+</Text>
-      </TouchableOpacity>
+      {playerData.inPenaltyZone === false && (
+        <TouchableOpacity
+          className="absolute bottom-28 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-[--accent] shadow-lg"
+          onPress={() => setIsCreateOpen(!isCreateOpen)}>
+          <Text className="text-2xl font-bold text-white">+</Text>
+        </TouchableOpacity>
+      )}
     </>
   );
 }

@@ -6,29 +6,29 @@ const SkillBook = require('../models/skillbook');
 const OpenAI = require('openai');
 const openai = new OpenAI({
   apiKey:
-    '',
+    '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',
 });
 
 const router = express.Router();
 
 function calculateTaskXpReward(level, difficulty, base_exp) {
-    const GROWTH_RATE = 0.8;
+    const GROWTH_RATE = 1.03;
     const XP_next_level = Math.floor(base_exp * Math.pow(level == 1 ? 2 : level, GROWTH_RATE));
   
     let xpPercentage;
   
     switch (difficulty) {
       case 'low':
-        xpPercentage = 0.01; // 3% de XP para o próximo nível
+        xpPercentage = 0.025; // 5% do XP necessário para o próximo nível
         break;
       case 'medium':
-        xpPercentage = 0.02; // 7% de XP para o próximo nível
+        xpPercentage = 0.035; // 7.5% do XP necessário para o próximo nível
         break;
       case 'high':
-        xpPercentage = 0.05; // 15% de XP para o próximo nível
+        xpPercentage = 0.045; // 10% do XP necessário para o próximo nível
         break;
       default:
-        xpPercentage = 0.01;
+        xpPercentage = 0.005;
     }
   
     return Math.floor(XP_next_level * xpPercentage);
@@ -99,7 +99,6 @@ router.post('/generate-skillbook-tasks/:bookId', async (req, res) => {
 
     const user = await User.findById(skillBook.userId);
 
-    // Salva as tarefas no banco de dados
     for (const task of tasks) {
     const xpReward = calculateTaskXpReward(user.level, task.intensityLevel, user.xpForNextLevel);
       await Task.create({

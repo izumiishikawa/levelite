@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, TouchableOpacity, ScrollView } from 'react-native';
 import Text from '../Text';
+import Title from '../Title';
 
 interface CognitivePreferencesScreenProps {
   onNext: (data: { cognitiveChallengePreference: string; studyFrequency: string; selfDisciplineLevel: string }) => void;
@@ -13,22 +14,22 @@ export const CognitivePreferencesScreen: React.FC<CognitivePreferencesScreenProp
   const [selfDisciplineLevel, setSelfDisciplineLevel] = useState('');
 
   const cognitiveLevels = [
-    { label: "Leve", value: "low" },
-    { label: "Moderado", value: "medium" },
-    { label: "Intenso", value: "hard" },
+    { label: "Light", value: "low" },
+    { label: "Moderate", value: "medium" },
+    { label: "Intense", value: "hard" },
   ];
 
   const studyFrequencies = [
-    { label: "Diariamente", value: "daily" },
-    { label: "3-4 vezes por semana", value: "3-4" },
-    { label: "1-2 vezes por semana", value: "1-2" },
-    { label: "Raramente", value: "rarely" },
+    { label: "Daily", value: "daily" },
+    { label: "3-4 times a week", value: "3-4" },
+    { label: "1-2 times a week", value: "1-2" },
+    { label: "Rarely", value: "rarely" },
   ];
 
   const disciplineLevels = [
-    { label: "Alta", value: "high" },
-    { label: "Moderada", value: "medium" },
-    { label: "Baixa", value: "low" },
+    { label: "High", value: "high" },
+    { label: "Moderate", value: "medium" },
+    { label: "Low", value: "low" },
   ];
 
   const handleNext = () => {
@@ -38,58 +39,66 @@ export const CognitivePreferencesScreen: React.FC<CognitivePreferencesScreenProp
   };
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", alignItems: "center" }} className="w-[90%] p-6">
-      <Text className="text-white text-2xl font-bold text-center mb-4 mt-24">Preferências Cognitivas</Text>
+    <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="w-[100%]">
 
-      {/* Preferência por Desafios Mentais */}
-      <Text className="text-[#B8B8B8] mb-2">Preferência por Desafios Mentais</Text>
+      <View className="mt-32 mx-auto w-[80%]">
+        <Title text="Cognitive Info" />
+        <Text className="mb-2 mx-auto mt-10 text-[#B8B8B8]">Mental Challenge Preference</Text>
+      </View>
+
       {cognitiveLevels.map((level) => (
         <TouchableOpacity
           key={level.value}
           onPress={() => setCognitiveChallengePreference(level.value)}
-          className={`w-full py-4 my-1 rounded-md ${cognitiveChallengePreference === level.value ? 'bg-[--accent]' : 'bg-[--foreground]'}`}
+          className={`py-4 mb-4 my-1 ${cognitiveChallengePreference === level.value ? "w-full" : "w-[90%]"} ${cognitiveChallengePreference === level.value ? 'bg-[--accent]' : 'bg-[--foreground]'}`}
         >
           <Text className="text-white font-semibold text-center">{level.label}</Text>
+          <View className="absolute bottom-[-6px] right-[-12px] h-16 w-10 rotate-[15deg] bg-[--background]" />
         </TouchableOpacity>
       ))}
 
-      {/* Frequência de Estudo/Desenvolvimento Intelectual */}
-      <Text className="text-[#B8B8B8] mb-2 mt-4">Frequência de Estudo/Desenvolvimento Intelectual</Text>
-      {studyFrequencies.map((frequency) => (
-        <TouchableOpacity
-          key={frequency.value}
-          onPress={() => setStudyFrequency(frequency.value)}
-          className={`w-full py-4 my-1 rounded-md ${studyFrequency === frequency.value ? 'bg-[--accent]' : 'bg-[--foreground]'}`}
-        >
-          <Text className="text-white font-semibold text-center">{frequency.label}</Text>
-        </TouchableOpacity>
-      ))}
+      {/* Study/Intellectual Development Frequency */}
+      <View className="mt-4">
+        <Text className="text-[#B8B8B8] mx-auto mb-2">Study/Intellectual Development Frequency</Text>
+        {studyFrequencies.map((frequency) => (
+          <TouchableOpacity
+            key={frequency.value}
+            onPress={() => setStudyFrequency(frequency.value)}
+            className={`py-4 mb-4 my-1 ${studyFrequency === frequency.value ? "w-full" : "w-[90%]"} ${studyFrequency === frequency.value ? 'bg-[--accent]' : 'bg-[--foreground]'}`}
+          >
+            <Text className="text-white font-semibold text-center">{frequency.label}</Text>
+            <View className="absolute bottom-[-6px] right-[-12px] h-16 w-10 rotate-[15deg] bg-[--background]" />
+          </TouchableOpacity>
+        ))}
+      </View>
 
-      {/* Nível de Autodisciplina */}
-      <Text className="text-[#B8B8B8] mb-2 mt-4">Nível de Autodisciplina</Text>
-      {disciplineLevels.map((level) => (
-        <TouchableOpacity
-          key={level.value}
-          onPress={() => setSelfDisciplineLevel(level.value)}
-          className={`w-full py-4 my-1 rounded-md ${selfDisciplineLevel === level.value ? 'bg-[--accent]' : 'bg-[--foreground]'}`}
-        >
-          <Text className="text-white font-semibold text-center">{level.label}</Text>
-        </TouchableOpacity>
-      ))}
+      {/* Self-Discipline Level */}
+      <View className="mt-4">
+        <Text className="text-[#B8B8B8] mx-auto mb-2">Self-Discipline Level</Text>
+        {disciplineLevels.map((level) => (
+          <TouchableOpacity
+            key={level.value}
+            onPress={() => setSelfDisciplineLevel(level.value)}
+            className={`py-4 mb-4 my-1 ${selfDisciplineLevel === level.value ? "w-full" : "w-[90%]"} ${selfDisciplineLevel === level.value ? 'bg-[--accent]' : 'bg-[--foreground]'}`}
+          >
+            <Text className="text-white font-semibold text-center">{level.label}</Text>
+            <View className="absolute bottom-[-6px] right-[-12px] h-16 w-10 rotate-[15deg] bg-[--background]" />
+          </TouchableOpacity>
+        ))}
+      </View>
 
-      {/* Botões de Navegação */}
-      <View className="flex flex-col justify-between w-full mt-6 mb-12 gap-2">
-      <TouchableOpacity 
+      {/* Navigation Buttons */}
+      <View className="flex flex-col justify-between w-[80%] mx-auto mt-6 mb-12 gap-2">
+        <TouchableOpacity 
           onPress={handleNext} 
           className={`w-full p-4 rounded-md items-center ${cognitiveChallengePreference && studyFrequency && selfDisciplineLevel ? 'bg-[--accent]' : 'bg-gray-500 opacity-50'}`}
           disabled={!cognitiveChallengePreference || !studyFrequency || !selfDisciplineLevel}
         >
-          <Text className="text-white font-bold">Próximo</Text>
+          <Text className="text-white font-bold">Next</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={onPrevious} className="w-full bg-[--foreground] p-4 rounded-md items-center">
-          <Text className="text-white font-bold">Voltar</Text>
+          <Text className="text-white font-bold">Back</Text>
         </TouchableOpacity>
-     
       </View>
     </ScrollView>
   );

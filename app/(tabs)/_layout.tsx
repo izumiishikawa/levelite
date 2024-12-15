@@ -9,9 +9,10 @@ import Animated, { useAnimatedStyle, useDerivedValue, withTiming } from 'react-n
 import Svg, { Path } from 'react-native-svg';
 import LottieView from 'lottie-react-native';
 import { AppUserContext } from '~/contexts/AppUserContext';
+import { classes } from '~/utils/classes';
 
 export default function TabLayout() {
-  const {playerData} = useContext(AppUserContext);
+  const { playerData } = useContext(AppUserContext);
 
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
@@ -27,13 +28,21 @@ export default function TabLayout() {
           headerStyle: {
             backgroundColor: '#17171C',
           },
-          headerLeft: () => (
-            <View className='ml-4 bg-[--accent] rounded-full w-8 h-8 flex justify-center items-center'>
-              <Text className='text-white text-lg' extraBold>04</Text>
-            </View>
-          ),
+          headerLeft: () => {
+            const selectedClass = classes.find((cls) => cls.id === playerData?.selectedClass);
+
+            return (
+              <View style={{ marginLeft: 10 }}>
+                {selectedClass ? (
+                  <Image source={selectedClass.icon} style={{ width: 30, height: 30 }} />
+                ) : (
+                  <Text>Classe</Text>
+                )}
+              </View>
+            );
+          },
           headerRight: () => (
-            <View className="flex flex-row items-center gap-5">
+            <View className="mr-5 flex flex-row items-center gap-5">
               <View className="flex flex-row items-center gap-2">
                 <Image
                   source={require('../../assets/coin.png')}
@@ -42,7 +51,9 @@ export default function TabLayout() {
                     height: 20,
                   }}
                 />
-                <Text className="text-lg font-bold text-[#FFD700]">{playerData && playerData.coins || 0}</Text>
+                <Text className="text-lg font-bold text-[#FFD700]">
+                  {(playerData && playerData.coins) || 0}
+                </Text>
               </View>
               <View className="flex flex-row items-center gap-1">
                 <Image
@@ -52,17 +63,19 @@ export default function TabLayout() {
                     height: 26,
                   }}
                 />
-                <Text className="text-lg font-bold text-[#ff9600]">{playerData && playerData.streak}</Text>
+                <Text className="text-lg font-bold text-[#ff9600]">
+                  {playerData && playerData.streak}
+                </Text>
               </View>
-              <TouchableOpacity onPress={toggleBottomSheet} style={{ marginRight: 15 }}>
-                {/* <Image
+              <TouchableOpacity onPress={toggleBottomSheet}>
+                <Image
                   source={require('../../assets/pfp.jpg')}
                   style={{
                     width: 42,
                     height: 42,
                     borderRadius: 20,
                   }}
-                /> */}
+                />
               </TouchableOpacity>
             </View>
           ),
@@ -87,7 +100,7 @@ export default function TabLayout() {
           name="skillbooks"
           options={{
             headerTitle: '',
-            title: 'Habilidades',
+            title: 'Skill Books',
             tabBarIcon: ({ ref }) => (
               <LottieView
                 loop={false}
@@ -104,7 +117,7 @@ export default function TabLayout() {
           name="profile"
           options={{
             headerTitle: '',
-            title: 'Jogador',
+            title: 'Player',
             tabBarIcon: ({ ref }) => (
               <LottieView
                 loop={false}
@@ -120,7 +133,7 @@ export default function TabLayout() {
           name="rank"
           options={{
             headerTitle: '',
-            title: 'Competitivo',
+            title: 'Ranks',
             tabBarIcon: ({ ref }) => (
               <LottieView
                 loop={false}

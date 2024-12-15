@@ -72,6 +72,7 @@ const SkillBookTasks: React.FC = () => {
                           userId={taskInfo.userId}
                           expPoints={taskInfo.xpReward}
                           backgroundColor="#1E1E25"
+                          currentStatus={taskInfo.status}
                           onSwipeComplete={() => handleTaskCompletion(taskInfo._id)}
                         >
                           <TaskCard
@@ -79,6 +80,7 @@ const SkillBookTasks: React.FC = () => {
                             xpReward={taskInfo.xpReward}
                             attribute={taskInfo.attribute}
                             intensityLevel={taskInfo.intensityLevel}
+                            status={taskInfo.status}
                             isDefault={false}
                           />
                         </Swipable>

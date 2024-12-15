@@ -8,6 +8,8 @@ import CognitivePreferencesScreen from './CognitivePreferencesScreen';
 import { ProgressIndicator } from '../nativewindui/ProgressIndicator';
 import InitialBuildScreen from './InitialBuildScreen';
 import { createOrUpdatePlayerProfile, generateAiTasks } from '~/services/api';
+import ClassSelectionScreen from './ClassSelectionScreen';
+import HimariScreen from './HimariIntroduction';
 
 interface OnboardingScreensProps {
   onComplete: () => void;
@@ -25,15 +27,12 @@ interface PlayerProfile {
   aura?: number;
   vitality?: number;
   focus?: number;
+  selectedClass?: string;
 }
 
 export const OnboardingScreens: React.FC<OnboardingScreensProps> = ({ onComplete }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [playerProfile, setPlayerProfile] = useState<PlayerProfile>({});
-
-  useEffect(() => {
-    console.log(playerProfile);
-  }, [playerProfile]);
 
   const handleNextStep = (updatedProfile: Partial<PlayerProfile> = {}) => {
     setPlayerProfile((prevProfile) => ({ ...prevProfile, ...updatedProfile }));
@@ -46,29 +45,45 @@ export const OnboardingScreens: React.FC<OnboardingScreensProps> = ({ onComplete
 
   const handleComplete = async () => {
     try {
-      await createOrUpdatePlayerProfile('673666aaec06d31576b6f4eb', playerProfile); 
+      await createOrUpdatePlayerProfile('673666aaec06d31576b6f4eb', playerProfile);
       onComplete();
     } catch (error) {
-      console.error("Error submitting player profile:", error);
+      console.error('Error submitting player profile:', error);
     }
   };
 
   const steps = [
     <WelcomeScreen onNext={() => handleNextStep()} />,
-    <ObjectivesScreen onNext={(mainGoal) => handleNextStep({ mainGoal })} onPrevious={handlePreviousStep} />,
+    <ObjectivesScreen
+      onNext={(mainGoal) => handleNextStep({ mainGoal })}
+      onPrevious={handlePreviousStep}
+    />,
     <PhysicInfoScreen onNext={(data) => handleNextStep(data)} onPrevious={handlePreviousStep} />,
-    <CognitivePreferencesScreen onNext={(data) => handleNextStep(data)} onPrevious={handlePreviousStep} />,
-    <InitialBuildScreen onNext={(attributes) => handleNextStep(attributes)} onPrevious={handlePreviousStep} />,
-    <ReadyScreen onNext={handleComplete} />,
+    <CognitivePreferencesScreen
+      onNext={(data) => handleNextStep(data)}
+      onPrevious={handlePreviousStep}
+    />,
+    <InitialBuildScreen
+      onNext={(attributes) => handleNextStep(attributes)}
+      onPrevious={handlePreviousStep}
+    />,
+    <ClassSelectionScreen
+      onNext={(selectedClass) => handleNextStep({ selectedClass })}
+      onPrevious={handlePreviousStep}
+    />,
+    <ReadyScreen onNext={() => handleComplete()} />,
   ];
 
   return (
-    <View className="flex justify-center items-center bg-[--background] h-full">
-      <ProgressIndicator
-        className="absolute w-[80%] top-20 z-20"
-        value={currentStep}
-        max={steps.length - 1}
-      />
+    <View className="flex h-full items-center justify-center bg-[--background]">
+      <View className="absolute top-0 pt-6 items-center z-20 flex h-20 w-full flex-row justify-center bg-[--background]">
+        <ProgressIndicator
+          className="w-[80%] mt-3"
+          barColor="#996DFF"
+          value={currentStep}
+          max={steps.length - 1}
+        />
+      </View>
       {steps[currentStep]}
     </View>
   );

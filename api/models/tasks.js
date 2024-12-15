@@ -14,13 +14,17 @@ const tasksSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  image: {
+    type: String,
+    default: ''
+  },
   attribute: {
     type: String,
     enum: ['aura', 'vitality', 'focus'],
   },
   type: {
     type: String,
-    enum: ["userTask", "aiTask", "dailyQuests"]
+    enum: ["userTask", "aiTask", "dailyQuests", "classQuests", "penaltyTask"]
   },
   intensityLevel: {
     type: String,

@@ -7,6 +7,7 @@ export const Container = ({ children }: { children: React.ReactNode }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 40
+    paddingTop: 40,
+    paddingBottom: 120
   },
 });
