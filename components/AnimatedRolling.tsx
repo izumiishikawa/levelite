@@ -57,7 +57,7 @@ const AnimatedRollingNumbers = ({ value = 12547, fontSize = 50, textColor = '#00
 
   return (
     <View>
-      <View className={`flex flex-row items-center pt-2 flex-wrap`}>
+      <View className={`flex flex-row items-center flex-wrap`}>
         {splitedValue.map((number, index) => {
           return (
             <TickerList

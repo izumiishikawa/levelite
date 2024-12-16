@@ -1,9 +1,9 @@
+import React, { useContext, useState, useCallback } from 'react';
 import { View, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import Text from '~/components/Text';
-import React, { useContext, useEffect, useState } from 'react';
-import { useNavigation } from 'expo-router'; // Navegação
-import { Container } from '../../components/Container';
-import { GeneralLevel } from '../../components/GeneralLevel';
+import { useNavigation } from 'expo-router';
+import { Container } from '~/components/Container';
+import { GeneralLevel } from '~/components/GeneralLevel';
 import { AttributeArc } from '~/components/AttributeArc';
 import { AppUserContext } from '~/contexts/AppUserContext';
 import { TaskWrapper } from '~/components/DailyTasks/TaskWrapper';
@@ -21,15 +21,11 @@ type Attributes = {
   aura: number;
 };
 
-// Tipo de playerData com os atributos definidos
-type PlayerData = {
-  attributes: Attributes;
-};
-
-export default function Index() {
+const Index: React.FC = () => {
   const { playerData, setPlayerData } = useContext(AppUserContext);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [refreshSignal, setRefreshSignal] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const navigation = useNavigation();
   const attributeIcons: { [key in keyof Attributes]: string } = {
@@ -38,28 +34,20 @@ export default function Index() {
     aura: '🤝',
   };
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Atualiza os dados do jogador e verifica nível
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      // Atualize os dados do jogador
-      const updatedPlayerData = await consultPlayerStatus(playerData._id);
+      const updatedPlayerData = await consultPlayerStatus();
       setPlayerData(updatedPlayerData);
-
-      // Emita o sinal para os TaskWrappers
       setRefreshSignal((prev) => prev + 1);
     } catch (error) {
       console.error('Erro ao atualizar dados do jogador:', error);
     } finally {
       setIsRefreshing(false);
     }
-  };
-
+  }, [setPlayerData]);
 
   if (!playerData) {
-    // Exibe um indicador de carregamento enquanto os dados do jogador não estão disponíveis
     return (
       <View className="flex-1 items-center justify-center bg-[--background]">
         <Text className="text-lg text-white">Carregando...</Text>
@@ -69,12 +57,10 @@ export default function Index() {
 
   return (
     <>
-      {/* Create Task Modal */}
       {isCreateOpen && (
         <CreateTask userId={playerData._id} onClose={() => setIsCreateOpen(false)} />
       )}
 
-      {/* Conteúdo Principal */}
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}>
@@ -94,7 +80,6 @@ export default function Index() {
         </View>
       </ScrollView>
 
-      {/* Botão para criar tarefas */}
       {playerData.inPenaltyZone === false && (
         <TouchableOpacity
           className="absolute bottom-28 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-[--accent] shadow-lg"
@@ -104,4 +89,6 @@ export default function Index() {
       )}
     </>
   );
-}
+};
+
+export default Index;

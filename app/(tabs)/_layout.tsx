@@ -1,83 +1,135 @@
 import { Tabs } from 'expo-router';
-import React, { useState, useReducer, useRef, useContext } from 'react';
+import React, { useState, useReducer, useRef, useContext, useCallback } from 'react';
 import { StyleSheet, Image, LayoutChangeEvent, TouchableOpacity, View } from 'react-native';
 import Text from '~/components/Text';
 import ProfileBottomSheet from '~/components/ProfileBottomSheet';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { useAnimatedStyle, useDerivedValue, withTiming } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
+import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import LottieView from 'lottie-react-native';
 import { AppUserContext } from '~/contexts/AppUserContext';
 import { classes } from '~/utils/classes';
+import AnimatedRollingNumbers from '~/components/AnimatedRolling';
+
+interface Class {
+  id: string;
+  icon: any;
+}
+
+interface PlayerData {
+  coins?: number;
+  gems?: number;
+  streak?: number;
+  selectedClass?: string;
+}
+
+interface TabBarIconProps {
+  ref?: React.RefObject<LottieView>;
+  focused?: boolean;
+}
+
+interface TabOptions {
+  title?: string;
+  tabBarLabel?: string;
+  tabBarIcon?: (props: TabBarIconProps) => JSX.Element;
+}
+
+interface RouteDescriptor {
+  key: string;
+  options: TabOptions;
+}
+
+interface AnimatedTabBarProps {
+  state: {
+    index: number;
+    routes: {
+      name(name: any): void; key: string 
+}[];
+  };
+  navigation: any;
+  descriptors: { [key: string]: RouteDescriptor };
+}
+
+interface TabBarComponentProps {
+  active: boolean;
+  options: TabOptions;
+  onLayout: (event: LayoutChangeEvent) => void;
+  onPress: () => void;
+}
+
+const HeaderLeft = React.memo(({ selectedClass }: { selectedClass?: Class }) => (
+  <View style={{ marginLeft: 10 }}>
+    {selectedClass ? (
+      <Image source={selectedClass.icon} style={{ width: 30, height: 30 }} />
+    ) : (
+      <Text>Classe</Text>
+    )}
+  </View>
+));
+
+const HeaderRight = React.memo(({ playerData, toggleBottomSheet }: { playerData?: PlayerData; toggleBottomSheet: () => void }) => (
+  <View style={styles.headerRightContainer}>
+     <View style={styles.headerItemContainer}>
+      <Image
+        source={require('../../assets/gem.png')}
+        style={styles.coinImage}
+      />
+      <AnimatedRollingNumbers
+        textColor="#08b7fc"
+        fontSize={18}
+        value={(playerData?.gems) || 0}
+      />
+    </View>
+    <View style={styles.headerItemContainer}>
+      <Image
+        source={require('../../assets/coin.png')}
+        style={styles.coinImage}
+      />
+      <AnimatedRollingNumbers
+        textColor="#FFD700"
+        fontSize={18}
+        value={(playerData?.coins) || 0}
+      />
+    </View>
+    <View style={styles.headerItemContainer}>
+      <Image
+        source={require('../../assets/streak.png')}
+        style={styles.streakImage}
+      />
+      <AnimatedRollingNumbers
+        textColor="#ff9600"
+        fontSize={18}
+        value={(playerData?.streak) || 0}
+      />
+    </View>
+    <TouchableOpacity onPress={toggleBottomSheet}>
+      <Image
+        source={require('../../assets/pfp.jpg')}
+        style={styles.profileImage}
+      />
+    </TouchableOpacity>
+  </View>
+));
 
 export default function TabLayout() {
   const { playerData } = useContext(AppUserContext);
-
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
-  const toggleBottomSheet = () => {
-    setIsBottomSheetOpen(!isBottomSheetOpen);
-  };
+  const toggleBottomSheet = useCallback(() => {
+    setIsBottomSheetOpen((prev) => !prev);
+  }, []);
+
+  const selectedClass = classes.find((cls) => cls.id === playerData?.selectedClass);
 
   return (
     <>
       <Tabs
         tabBar={(props) => <AnimatedTabBar {...props} />}
         screenOptions={{
-          headerStyle: {
-            backgroundColor: '#17171C',
-          },
-          headerLeft: () => {
-            const selectedClass = classes.find((cls) => cls.id === playerData?.selectedClass);
-
-            return (
-              <View style={{ marginLeft: 10 }}>
-                {selectedClass ? (
-                  <Image source={selectedClass.icon} style={{ width: 30, height: 30 }} />
-                ) : (
-                  <Text>Classe</Text>
-                )}
-              </View>
-            );
-          },
+          headerStyle: styles.headerStyle,
+          lazy: true,
+          headerLeft: () => <HeaderLeft selectedClass={selectedClass} />,
           headerRight: () => (
-            <View className="mr-5 flex flex-row items-center gap-5">
-              <View className="flex flex-row items-center gap-2">
-                <Image
-                  source={require('../../assets/coin.png')}
-                  style={{
-                    width: 20,
-                    height: 20,
-                  }}
-                />
-                <Text className="text-lg font-bold text-[#FFD700]">
-                  {(playerData && playerData.coins) || 0}
-                </Text>
-              </View>
-              <View className="flex flex-row items-center gap-1">
-                <Image
-                  source={require('../../assets/streak.png')}
-                  style={{
-                    width: 26,
-                    height: 26,
-                  }}
-                />
-                <Text className="text-lg font-bold text-[#ff9600]">
-                  {playerData && playerData.streak}
-                </Text>
-              </View>
-              <TouchableOpacity onPress={toggleBottomSheet}>
-                <Image
-                  source={require('../../assets/pfp.jpg')}
-                  style={{
-                    width: 42,
-                    height: 42,
-                    borderRadius: 20,
-                  }}
-                />
-              </TouchableOpacity>
-            </View>
+            <HeaderRight playerData={playerData} toggleBottomSheet={toggleBottomSheet} />
           ),
         }}>
         <Tabs.Screen
@@ -85,13 +137,13 @@ export default function TabLayout() {
           options={{
             headerTitle: '',
             title: 'Levelite',
-            tabBarIcon: ({ ref }) => (
+            tabBarIcon: ({ ref }: TabBarIconProps) => (
               <LottieView
                 loop={false}
                 ref={ref}
                 autoPlay
                 source={require('../../assets/home.json')}
-                style={{ width: 25, height: 25 }}
+                style={styles.lottieIcon}
               />
             ),
           }}
@@ -100,31 +152,46 @@ export default function TabLayout() {
           name="skillbooks"
           options={{
             headerTitle: '',
-            title: 'Skill Books',
-            tabBarIcon: ({ ref }) => (
+            title: 'Skills',
+            tabBarIcon: ({ ref }: TabBarIconProps) => (
               <LottieView
                 loop={false}
                 ref={ref}
                 autoPlay
                 source={require('../../assets/book.json')}
-                style={{ width: 25, height: 25 }}
+                style={styles.lottieIcon}
               />
             ),
           }}
         />
-
         <Tabs.Screen
           name="profile"
           options={{
             headerTitle: '',
             title: 'Player',
-            tabBarIcon: ({ ref }) => (
+            tabBarIcon: ({ ref }: TabBarIconProps) => (
               <LottieView
                 loop={false}
                 ref={ref}
                 autoPlay
                 source={require('../../assets/avatar.json')}
-                style={{ width: 25, height: 25 }}
+                style={styles.lottieIcon}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="shop"
+          options={{
+            headerTitle: '',
+            title: 'Shop',
+            tabBarIcon: ({ ref }: TabBarIconProps) => (
+              <LottieView
+                loop={false}
+                ref={ref}
+                autoPlay
+                source={require('../../assets/coin.json')}
+                style={styles.lottieIcon}
               />
             ),
           }}
@@ -134,13 +201,13 @@ export default function TabLayout() {
           options={{
             headerTitle: '',
             title: 'Ranks',
-            tabBarIcon: ({ ref }) => (
+            tabBarIcon: ({ ref }: TabBarIconProps) => (
               <LottieView
                 loop={false}
                 ref={ref}
                 autoPlay
                 source={require('../../assets/Competition.json')}
-                style={{ width: 36, height: 36 }}
+                style={styles.lottieLargeIcon}
               />
             ),
           }}
@@ -151,23 +218,19 @@ export default function TabLayout() {
   );
 }
 
-const AnimatedTabBar = ({
-  state: { index: activeIndex, routes },
-  navigation,
-  descriptors,
-}: any) => {
+const AnimatedTabBar = React.memo(({ state: { index: activeIndex, routes }, navigation, descriptors }: AnimatedTabBarProps) => {
   const { bottom } = useSafeAreaInsets();
-  const [layout, dispatch] = useReducer((state: any, action: any) => [...state, action], []);
+  const [layout, dispatch] = useReducer((state: any[], action: any) => [...state, action], []);
 
-  const handleLayout = (event: LayoutChangeEvent, index: number) => {
+  const handleLayout = useCallback((event: LayoutChangeEvent, index: number) => {
     const x = event.nativeEvent.layout.x;
     dispatch({ index, x });
-  };
+  }, []);
 
   return (
     <View style={[styles.tabBarContainerWrapper, { paddingBottom: bottom + 10 }]}>
       <View style={styles.tabBar}>
-        {routes.map((route: any, index: number) => {
+        {routes.map((route, index) => {
           const active = index === activeIndex;
           const { options } = descriptors[route.key];
 
@@ -176,7 +239,7 @@ const AnimatedTabBar = ({
               key={route.key}
               active={active}
               options={options}
-              onLayout={(e: any) => handleLayout(e, index)}
+              onLayout={(e) => handleLayout(e, index)}
               onPress={() => navigation.navigate(route.name)}
             />
           );
@@ -184,63 +247,85 @@ const AnimatedTabBar = ({
       </View>
     </View>
   );
-};
+});
 
-const TabBarComponent = ({ active, options, onLayout, onPress }: any) => {
-  const lottieRef = useRef(null);
+const TabBarComponent = React.memo(({ active, options, onLayout, onPress }: TabBarComponentProps) => {
+  const lottieRef = useRef<LottieView>(null);
 
-  // Animação para o fundo expansível
   const backgroundAnimation = useAnimatedStyle(() => ({
-    width: withTiming(active ? 120 : 50, { duration: 250 }), // Expande para englobar o texto
-    height: 45, // Altura fixa
-    backgroundColor: active ? '#2A2A35' : 'transparent', // Muda a cor
-    flexDirection: 'row', // Alinha ícone e texto lado a lado
-    alignItems: 'center', // Centraliza verticalmente
-    justifyContent: 'flex-start', // Centraliza horizontalmente
-    gap: 5,
+    width: withTiming(active ? 95 : 50, { duration: 250 }),
+    height: 45,
+    backgroundColor: active ? '#2A2A35' : 'transparent',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
     borderRadius: 25,
     paddingHorizontal: 10,
   }));
 
-  // Animação para o texto
   const textAnimation = useAnimatedStyle(() => ({
     transform: [
-      { translateX: withTiming(active ? 0 : 20, { duration: 250 }) }, // Swipe
+      { translateX: withTiming(active ? 0 : 20, { duration: 250 }) },
     ],
-    opacity: withTiming(active ? 1 : 0, { duration: 250 }), // Fade in/out
+    opacity: withTiming(active ? 1 : 0, { duration: 250 }),
   }));
 
-  const handlePress = () => {
+  const handlePress = useCallback(() => {
     if (lottieRef.current && typeof lottieRef.current.play === 'function') {
-      lottieRef.current.play(); // Toca a animação
+      lottieRef.current.play();
     }
-    onPress(); // Navega para a aba
-  };
+    onPress();
+  }, [onPress]);
 
   return (
     <TouchableOpacity onPress={handlePress} onLayout={onLayout} style={styles.tabItem}>
       <Animated.View style={[styles.circleBackground, backgroundAnimation]}>
-        {/* Ícone */}
         {options.tabBarIcon ? (
           <View style={styles.lottieWrapper}>
             {options.tabBarIcon({
               focused: active,
-              ref: lottieRef, // Passe a referência para o ícone
+              ref: lottieRef,
             })}
           </View>
         ) : (
           <Text>?</Text>
         )}
-        {/* Texto animado */}
         <Animated.Text style={[styles.tabText, textAnimation]}>
           {options.title || options.tabBarLabel || 'Tab'}
         </Animated.Text>
       </Animated.View>
     </TouchableOpacity>
   );
-};
+});
 
 const styles = StyleSheet.create({
+  headerStyle: {
+    backgroundColor: '#17171C',
+  },
+  headerRightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 20,
+  },
+  headerItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  coinImage: {
+    width: 20,
+    height: 20,
+  },
+  streakImage: {
+    width: 26,
+    height: 26,
+  },
+  profileImage: {
+    width: 42,
+    height: 42,
+    borderRadius: 20,
+    marginRight: 20,
+  },
   tabBarContainerWrapper: {
     position: 'absolute',
     bottom: 10,
@@ -249,7 +334,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    justifyContent: 'space-evenly', // Distribui as abas igualmente
+    justifyContent: 'space-evenly',
     backgroundColor: '#1E1E25',
     paddingHorizontal: 25,
     paddingVertical: 5,
@@ -262,13 +347,13 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   tabItem: {
-    flex: 1, // Cada aba ocupa o mesmo espaço
+    flex: 1,
     alignItems: 'center',
   },
   circleBackground: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center', // Centraliza conteúdo horizontalmente
+    justifyContent: 'center',
     borderRadius: 25,
     overflow: 'hidden',
   },
@@ -282,5 +367,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 11,
     fontWeight: '600',
+  },
+  lottieIcon: {
+    width: 25,
+    height: 25,
+  },
+  lottieLargeIcon: {
+    width: 36,
+    height: 36,
   },
 });

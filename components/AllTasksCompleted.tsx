@@ -56,7 +56,7 @@ export default function AllTasksCompleted({ onComplete }: { onComplete: () => vo
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowCoinSplash(true);
-    }, 2000);
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, [playerData]);

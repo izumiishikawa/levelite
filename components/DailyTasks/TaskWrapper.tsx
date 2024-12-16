@@ -12,8 +12,9 @@ import {
   completeTask,
   restoreTask,
   deleteTask,
+  getSkillBookTasks,
+  generateSkillBookTasks,
 } from '~/services/api';
-import Swipable from './Swipable';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AnimatedRollingNumbers from '../AnimatedRolling';
 import AllTasksCompleted from '../AllTasksCompleted';
@@ -21,11 +22,16 @@ import LevelUpAlert from '../LevelUpAlert';
 import LottieView from 'lottie-react-native';
 
 interface TaskWrapperProps {
-  taskType: 'daily' | 'user' | 'class'; // Define os tipos de tarefa
-  refreshSignal: number;
+  taskType: 'daily' | 'user' | 'class' | 'skillbook'; // Define os tipos de tarefa
+  skillBookId?: string;
+  refreshSignal?: number;
 }
 
-export const TaskWrapper: React.FC<TaskWrapperProps> = ({ taskType, refreshSignal }) => {
+export const TaskWrapper: React.FC<TaskWrapperProps> = ({
+  taskType,
+  refreshSignal,
+  skillBookId,
+}) => {
   const { playerData, setPlayerData } = useContext(AppUserContext);
   const [currentTasks, setCurrentTasks] = useState<any[]>([]);
   const [inPenaltyZone, setInPenaltyZone] = useState(false);
@@ -65,6 +71,7 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({ taskType, refreshSigna
 
     try {
       let tasks = [];
+
       if (taskType === 'daily') {
         if (playerData.inPenaltyZone) {
           tasks = await consultPenaltyTasks(playerData._id);
@@ -72,7 +79,6 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({ taskType, refreshSigna
         } else {
           if (!playerData.generatedToday) {
             setIsLoading(true);
-            await setGeneratedToday(playerData._id);
             await generateAiTasks(playerData._id);
             setIsLoading(false);
           }
@@ -86,6 +92,17 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({ taskType, refreshSigna
       } else if (taskType === 'class') {
         tasks = await consultClassTasks(playerData._id);
         tasks = tasks.filter((task: any) => task.type === 'classQuests');
+      } else if (taskType === 'skillbook' && skillBookId) {
+        const skillBookTasks = await getSkillBookTasks(skillBookId);
+
+        if (!skillBookTasks || skillBookTasks.length === 0) {
+          setIsLoading(true);
+          await generateSkillBookTasks(skillBookId);
+          tasks = await getSkillBookTasks(skillBookId);
+          setIsLoading(false);
+        } else {
+          tasks = skillBookTasks;
+        }
       }
 
       setCurrentTasks(tasks);
@@ -110,46 +127,36 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({ taskType, refreshSigna
 
   useEffect(() => {
     fetchTasks();
-  }, [taskType]); // Refetch tasks when taskType changes
+  }, [taskType]);
 
   const completeCurrentTask = async (taskId: string) => {
     try {
       const data = await completeTask(taskId, playerData._id);
-
+  
       if (data.allTasksCompleted) {
         setAllTasksCompleted(true);
       }
-
+  
       if (data.leveledUp === true) {
         setLeveledUp(true);
       }
-
+  
       setPlayerData((prevPlayerData) => ({
-        ...prevPlayerData,
-        currentXP: data.user.currentXP,
-        level: data.user.level,
-        pointsToDistribute: data.user.pointsToDistribute,
-        xpForNextLevel: data.user.xpForNextLevel,
-        attributes: {
-          ...prevPlayerData.attributes,
-          ...data.user.attributes,
-        },
+        ...prevPlayerData, 
+        ...data.user, 
       }));
     } catch (err) {
       console.error('Erro ao completar tarefa:', err);
     }
   };
-
+  
   const restoreCurrentTask = async (taskId: string) => {
     try {
       const data = await restoreTask(taskId);
 
       setPlayerData((prevPlayerData) => ({
         ...prevPlayerData,
-        currentXP: data.user.currentXP,
-        level: data.user.level,
-        pointsToDistribute: data.user.pointsToDistribute,
-        xpForNextLevel: data.user.xpForNextLevel,
+        ...data.user
       }));
     } catch (err) {
       console.error('Erro ao restaurar tarefa:', err);
@@ -198,7 +205,7 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({ taskType, refreshSigna
 
   useEffect(() => {
     fetchTasks();
-  }, [refreshSignal]); // Reexecuta ao mudar o sinal
+  }, [refreshSignal]); 
 
   return (
     <>
@@ -225,8 +232,8 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({ taskType, refreshSigna
               />
 
               {isLoading && (
-                <View className='flex flex-col items-center w-full mt-20'>
-                  <Text className="text-white mb-5" bold>
+                <View className="mt-20 flex w-full flex-col items-center">
+                  <Text className="mb-5 text-white" bold>
                     Gerando Tarefas Diárias..
                   </Text>
                   <LottieView
@@ -258,14 +265,12 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({ taskType, refreshSigna
                         />
                       </Animated.View>
                     ))
-                  : !isLoading && (
-                      <Text className="mx-auto text-[#B8B8B8]">No tasks found.</Text>
-                    )}
+                  : !isLoading && <Text className="mx-auto text-[#B8B8B8]">No tasks found.</Text>}
               </View>
               {!inPenaltyZone && taskType === 'daily' && (currentTasks || []).length > 0 && (
                 <View className="mb-14 flex w-full flex-col items-center gap-6">
                   <Text className=" w-[85%] text-center text-white">
-                  WARNING: Failure to complete daily missions will result in severe{' '}
+                    WARNING: Failure to complete daily missions will result in severe{' '}
                     <Text className="font-extrabold text-[#ED6466]">Penalities</Text>
                   </Text>
 

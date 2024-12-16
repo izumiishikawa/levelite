@@ -1,4 +1,4 @@
-import { createContext, Dispatch, SetStateAction } from "react";
+import { createContext, Dispatch, SetStateAction, useState } from "react";
 
 interface Attributes {
   vitality: number;
@@ -34,6 +34,11 @@ interface PlayerData {
   maxMana: number,
   coins: number,
   allTasksDone: boolean,
+  selectedClass: string,
+  generatedToday: boolean,
+  classGeneratedToday: boolean,
+  skillBookGeneratedToday: boolean,
+  totalExp: number,
 }
 
 interface PlayerContextType {
@@ -74,6 +79,11 @@ export const AppUserContext = createContext<PlayerContextType>({
     maxMana: 0,
     coins: 0,
     allTasksDone: false,
+    selectedClass: "",
+    generatedToday: false,
+    classGeneratedToday: false,
+    skillBookGeneratedToday: false,
+    totalExp: 0,
   },
   setPlayerData: () => {},
 });

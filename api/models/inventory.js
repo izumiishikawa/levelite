@@ -1,57 +1,21 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
-const InventorySchema = new mongoose.Schema({
+// Esquema dos itens dentro do inventário
+const inventoryItemSchema = new mongoose.Schema({
+  itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'ItemData', required: true }, // Referência ao ItemData
+  quantity: { type: Number, required: true, default: 1 }, // Quantidade no inventário
+});
+
+// Esquema do inventário do usuário
+const inventorySchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
+    unique: true, // Cada usuário deve ter apenas um inventário
   },
-  items: [
-    {
-      name: {
-        type: String,
-        required: true,
-      },
-      quantity: {
-        type: Number,
-        required: true,
-        default: 1,
-      },
-      description: {
-        type: String,
-      },
-      attributes: {
-        rarity: {
-          type: String,
-          enum: ['common', 'uncommon', 'rare', 'epic', 'legendary'],
-          required: true,
-          default: 'common',
-        },
-        actions: [
-          {
-            type: {
-              type: String,
-              enum: ['heal', 'recover_mana', 'teleport', 'gain_xp', 'other'],
-              required: true,
-            },
-            value: {
-              type: Number, // Valor associado à ação, como quantidade de cura, mana, etc.
-              required: true,
-            },
-          },
-        ],
-        durability: {
-          type: Number,
-          default: 100,
-        },
-      },
-    },
-  ],
-  lastUpdated: {
-    type: Date,
-    default: Date.now,
-  },
+  items: [inventoryItemSchema], // Lista de itens no inventário
 });
 
-const Inventory = mongoose.model('Inventory', InventorySchema);
-export default Inventory;
+// Exporta o modelo Inventory
+module.exports = mongoose.model('Inventory', inventorySchema);

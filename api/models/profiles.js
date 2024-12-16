@@ -9,7 +9,6 @@ const profilesSchema = new mongoose.Schema({
   },
   mainGoal: {
     type: String,
-    required: true,
     enum: [
       "develop_strength",
       "increase_endurance",
@@ -20,16 +19,13 @@ const profilesSchema = new mongoose.Schema({
   },
   height: {
     type: Number,
-    required: true,
   },
   weight: {
     type: Number,
-    required: true,
   },
   exerciseFrequency: {
     type: String,
-    enum: ["sedentary", "1-2", "3-5", "daily"],
-    required: true,
+    enum: ["sedentary", "1-2", "3-4", "daily"],
   },
   exerciseIntensity: {
     type: String,
@@ -45,7 +41,7 @@ const profilesSchema = new mongoose.Schema({
   },
   studyFrequency: {
     type: String,
-    enum: ["daily", "1-2", "rarely"],
+    enum: ["daily", "1-2", "3-4", "rarely"],
   },
 });
 

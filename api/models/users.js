@@ -26,7 +26,16 @@ const usersSchema = new mongoose.Schema({
     default: false
   },
 
-  // Nível e XP
+  totalExp: {
+    type: Number,
+    default: 0
+  },
+
+  allDone: {
+    type: Boolean,
+    default: false,
+  },
+
   level: {
     type: Number,
     default: 1,
@@ -66,14 +75,12 @@ const usersSchema = new mongoose.Schema({
     default: false,
   },
 
-  // Atributos
   attributes: {
     aura: { type: Number, default: 1 },
     vitality: { type: Number, default: 1 },
     focus: { type: Number, default: 1 },
   },
 
-  // Histórico e Progresso
   tasksCompleted: {
     type: Number,
     default: 0,
@@ -102,9 +109,13 @@ const usersSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  gems: {
+    type: Number,
+    default: 0,
+  },
   lastTaskCompletedAt: {
     type: Date,
-    default: null, // Armazena a última data de conclusão de uma tarefa
+    default: null,
   },
   lastLogin: {
     type: Date,

@@ -26,12 +26,11 @@ import {
   Inter_900Black,
 } from '@expo-google-fonts/inter';
 import { OnboardingScreens } from '../components/Onboarding/OnboardingScreens';
-import LevelUpAlert from '~/components/LevelUpAlert';
-import AllTasksCompleted from '~/components/AllTasksCompleted';
 import * as SplashScreen from 'expo-splash-screen';
 import { View } from 'react-native';
 import Text from '~/components/Text';
 import HimariScreen from '~/components/Onboarding/HimariIntroduction';
+import AuthScreen from './authscreen';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -41,16 +40,23 @@ export default function RootLayout() {
   useInitialAndroidBarSync();
   const { colorScheme } = useColorScheme();
   const [playerData, setPlayerData] = useState<any>(null);
-  const [allTasksDone, setAllTasksDone] = useState(false);
-  const [newLevel, setNewLevel] = useState(0);
+  const [haveToken, setHaveToken] = useState<boolean>(true);
   const [showHimari, setShowHimari] = useState(false); // Exibição da Himari
 
   const initializePlayerData = async () => {
     try {
-      const storedPlayerData = await consultPlayerStatus('673666aaec06d31576b6f4eb');
-      if (storedPlayerData) {
-        setPlayerData(storedPlayerData);
+      const userToken = await AsyncStorage.getItem('userToken');
+
+      if (userToken) {
+        setHaveToken(true)
+        const storedPlayerData = await consultPlayerStatus();
+        if (storedPlayerData) {
+          setPlayerData(storedPlayerData);
+        }
+      } else {
+        setHaveToken(false);
       }
+    
     } catch (err) {
       console.error('Erro ao buscar dados do jogador:', err);
     } finally {
@@ -86,7 +92,7 @@ export default function RootLayout() {
   };
 
   const handleHimariNext = () => {
-    setShowHimari(false); // Sai da tela Himari
+    setShowHimari(false); 
   };
 
   const [fontsLoaded, fontsError] = useFonts({
@@ -113,6 +119,12 @@ export default function RootLayout() {
         <Text style={{ color: '#fff', fontSize: 16 }}>Carregando...</Text>
       </View>
     );
+  }
+
+  if (!haveToken) {
+    return (
+      <AuthScreen onComplete={() => initializePlayerData()} />
+    )
   }
 
   if (!playerData) {

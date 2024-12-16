@@ -45,7 +45,7 @@ export const OnboardingScreens: React.FC<OnboardingScreensProps> = ({ onComplete
 
   const handleComplete = async () => {
     try {
-      await createOrUpdatePlayerProfile('673666aaec06d31576b6f4eb', playerProfile);
+      await createOrUpdatePlayerProfile(playerProfile);
       onComplete();
     } catch (error) {
       console.error('Error submitting player profile:', error);

@@ -74,14 +74,23 @@ export const Calendar: React.FC = () => {
             ))}
           </View>
         </View>
-        <View className='relative'>
+        <View className="relative">
           <Image
             source={require('../assets/user.png')}
             style={{ width: 150, height: 150, marginBottom: 30 }}
           />
-          <Text className='text-white text-lg absolute right-3 top-[75px]' black>     <AnimatedRollingNumbers fontSize={20} textColor='#fff' value={playerData.health} /></Text>
-          
-          <Text className='text-white text-lg absolute right-[5px] top-[95px]' black> <AnimatedRollingNumbers fontSize={20} textColor='#fff' value={playerData.mana} /></Text>
+          <View className="absolute right-0 top-[75px] flex flex-row items-center gap-0.5 text-lg text-white">
+            <AnimatedRollingNumbers fontSize={16} textColor="#fff" value={playerData.health} />
+            <Text className='text-white text-lg'>/</Text>
+            <AnimatedRollingNumbers fontSize={13} textColor="#fff" value={playerData.maxHealth} />
+          </View>
+
+      
+          <View className="absolute -right-2 top-[95px] flex flex-row items-center gap-0.5 text-lg text-white">
+            <AnimatedRollingNumbers fontSize={16} textColor="#fff" value={playerData.mana} />
+            <Text className='text-white text-lg'>/</Text>
+            <AnimatedRollingNumbers fontSize={13} textColor="#fff" value={playerData.maxMana} />
+          </View>
         </View>
       </View>
     )

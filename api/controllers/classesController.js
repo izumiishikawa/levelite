@@ -5,47 +5,47 @@ const User = require('../models/users');
 const Profile = require('../models/profiles');
 const Task = require('../models/tasks');
 const authConfig = require('../config/auth.json');
+const authMiddleware = require('../middlewares/auth');
 const classes = require('../data/classes');
 const OpenAI = require('openai');
-const secret = require("../data/secret.json")
+const secret = require('../data/secret.json');
 const openai = new OpenAI({
-  apiKey:
-    secret.apiKey,
+  apiKey: secret.apiKey,
 });
 
 const router = express.Router();
 
-
 const GROWTH_FACTOR = 1.03;
 
 function calculateXpForNextLevel(level, base_exp) {
-    return Math.floor(base_exp * Math.pow(GROWTH_FACTOR, level - 1));
+  return Math.floor(base_exp * Math.pow(GROWTH_FACTOR, level - 1));
+}
+
+// Função para calcular o XP de recompensa com base na dificuldade e nível do jogador
+function calculateTaskXpReward(level, difficulty, base_exp) {
+  const XP_next_level = calculateXpForNextLevel(level, base_exp);
+
+  // Percentual ajustado para atingir ~16 tarefas
+  let xpPercentage;
+
+  switch (difficulty) {
+    case 'low':
+      xpPercentage = 0.025; // 5% do XP necessário para o próximo nível
+      break;
+    case 'medium':
+      xpPercentage = 0.035; // 7.5% do XP necessário para o próximo nível
+      break;
+    case 'high':
+      xpPercentage = 0.045; // 10% do XP necessário para o próximo nível
+      break;
+    default:
+      xpPercentage = 0.005;
   }
-  
-  // Função para calcular o XP de recompensa com base na dificuldade e nível do jogador
-  function calculateTaskXpReward(level, difficulty, base_exp) {
-    const XP_next_level = calculateXpForNextLevel(level, base_exp);
-  
-    // Percentual ajustado para atingir ~16 tarefas
-    let xpPercentage;
-  
-    switch (difficulty) {
-      case 'low':
-        xpPercentage = 0.025; // 5% do XP necessário para o próximo nível
-        break;
-      case 'medium':
-        xpPercentage = 0.035; // 7.5% do XP necessário para o próximo nível
-        break;
-      case 'high':
-        xpPercentage = 0.045; // 10% do XP necessário para o próximo nível
-        break;
-      default:
-        xpPercentage = 0.005;
-    }
-  
-    return Math.floor(XP_next_level * xpPercentage);
-  }
-  
+
+  return Math.floor(XP_next_level * xpPercentage);
+}
+
+router.use(authMiddleware);
 
 router.get('/classes', (req, res) => {
   try {
@@ -57,11 +57,16 @@ router.get('/classes', (req, res) => {
 });
 
 router.post('/generate-class-tasks', async (req, res) => {
-  const { userId } = req.body;
+  const userId = req.userId;
 
   try {
     // Verifica se o usuário existe
-    const user = await User.findById(userId);
+    const user = await User.findOneAndUpdate(
+      { _id: userId, classGeneratedToday: false },
+      { $set: { classGeneratedToday: true } },
+      { new: true }
+    );
+
     if (!user) {
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
@@ -126,7 +131,7 @@ Não responde com absolutamente mais nada, somente o JSON, não formate o json n
 
     // Salva as tarefas no banco de dados
     for (const task of tasks) {
-    const xpReward = calculateTaskXpReward(user.level, task.intensityLevel, user.xpForNextLevel);
+      const xpReward = calculateTaskXpReward(user.level, task.intensityLevel, user.xpForNextLevel);
       await Task.create({
         userId,
         title: task.title,
@@ -142,13 +147,13 @@ Não responde com absolutamente mais nada, somente o JSON, não formate o json n
 
     res.status(201).json({ message: 'Tarefas geradas com sucesso', tasks });
   } catch (error) {
-    console.error('Erro ao gerar tarefas:', error);
+    await User.updateOne({ _id: userId }, { $set: { classGeneratedToday: false } });
     res.status(500).json({ error: 'Erro ao gerar tarefas' });
   }
 });
 
 router.get('/tasks', async (req, res) => {
-  const userId = req.query.userId;
+  const userId = req.userId;
 
   try {
     // Verifica se o usuário existe

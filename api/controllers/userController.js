@@ -3,10 +3,10 @@ const User = require('../models/users');
 const Profile = require('../models/profiles');
 const Task = require('../models/tasks');
 const OpenAI = require('openai');
-const secret = require("../data/secret.json")
+const secret = require('../data/secret.json');
+const authMiddleware = require('../middlewares/auth');
 const openai = new OpenAI({
-  apiKey:
-    secret.apiKey,
+  apiKey: secret.apiKey,
 });
 
 const router = express.Router();
@@ -39,13 +39,13 @@ function calculateTaskXpReward(level, difficulty, base_exp) {
   return Math.floor(XP_next_level * xpPercentage);
 }
 
+router.use(authMiddleware);
+
 router.get('/profile', async (req, res) => {
   try {
-    const user = await User.findById(req.query.userId);
-    const profile = await Profile.findOne({ userId: req.query.userId });
 
-    console.log(req.query.userId);
-    console.log(req.query.user);
+    const user = await User.findById(req.userId);
+    const profile = await Profile.findOne({ userId: req.userId });
 
     if (!user) {
       return res.status(404).send({ error: 'User not found' });
@@ -150,7 +150,7 @@ router.get('/tasks', async (req, res) => {
     const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
     const tasks = await Task.find({
-      userId: req.query.userId,
+      userId: req.userId,
       $or: [
         { status: 'pending', skillBookId: null, type: 'dailyQuests' },
         { status: 'pending', skillBookId: null, type: 'userTask' },
@@ -190,6 +190,7 @@ router.patch('/tasks/restore', async (req, res) => {
     const user = await User.findById(userId);
     if (user) {
       user.currentXP -= xpPenalty;
+      user.totalExp -= xpPenalty;
 
       while (user.xp < 0 && user.level > 1) {
         user.level -= 1;
@@ -222,7 +223,7 @@ router.get('/penalty-tasks', async (req, res) => {
     const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
     const tasks = await Task.find({
-      userId: req.query.userId,
+      userId: req.userId,
       type: 'penaltyTask',
       skillBookId: null,
       $or: [
@@ -247,7 +248,8 @@ router.get('/penalty-tasks', async (req, res) => {
 });
 
 router.post('/create-user-task', async (req, res) => {
-  const { userId, title, description, attribute, intensityLevel, recurrence, xpReward } = req.body;
+  const { title, description, attribute, intensityLevel, recurrence, xpReward } = req.body;
+  const userId = req.userId;
 
   try {
     const user = await User.findById(userId);
@@ -298,7 +300,7 @@ router.delete('/delete-task', async (req, res) => {
 });
 
 router.put('/generated-today', async (req, res) => {
-  const { userId } = req.body;
+  const userId = req.userId;
 
   try {
     const user = await User.findByIdAndUpdate(userId, { generatedToday: true }, { new: true });
@@ -315,7 +317,7 @@ router.put('/generated-today', async (req, res) => {
 });
 
 router.put('/class-generated-today', async (req, res) => {
-  const { userId } = req.body;
+  const userId = req.userId;
 
   try {
     const user = await User.findByIdAndUpdate(userId, { classGeneratedToday: true }, { new: true });
@@ -333,7 +335,7 @@ router.put('/class-generated-today', async (req, res) => {
 
 router.put('/complete-task', async (req, res) => {
   const { taskId } = req.query;
-  const { userId } = req.body;
+  const userId = req.userId;
 
   try {
     const task = await Task.findOne({ _id: taskId, userId, status: 'pending' });
@@ -351,6 +353,7 @@ router.put('/complete-task', async (req, res) => {
     }
 
     user.currentXP += task.xpReward;
+    user.totalExp += task.xpReward;
 
     while (user.currentXP >= user.xpForNextLevel) {
       user.currentXP -= user.xpForNextLevel;
@@ -370,7 +373,7 @@ router.put('/complete-task', async (req, res) => {
       });
 
       if (remainingDailyTasks.length === 0) {
-        user.coins = (user.coins || 0) + 50;
+        user.coins = (user.coins || 0) + 100;
         user.streak = user.streak + 1;
         user.lastDailyCompletion = new Date();
       }
@@ -392,34 +395,39 @@ router.put('/complete-task', async (req, res) => {
 
       if (remainingPenaltyTasks.length === 0) {
         user.inPenaltyZone = false;
-        console.log(`Usuário ${userId} saiu da penalidade por completar todas as penaltyTasks.`);
       }
     }
 
-    await user.save();
+    let allTasksCompleted = false;
 
-    const allTasksPending = await Task.find({
-      userId,
-      status: 'pending',
-    });
-
-    const allTasksCompleted = allTasksPending.length === 0;
-
-    if (allTasksCompleted) {
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-
-      const todayEnd = new Date();
-      todayEnd.setHours(23, 59, 59, 999);
-
-      await Task.deleteMany({
+    if (!user.allDone) {
+      const allTasksPending = await Task.find({
         userId,
+        status: 'pending',
         type: 'dailyQuests',
-        dateAssigned: { $gte: todayStart, $lt: todayEnd },
       });
 
-      console.log('Todas as dailyQuests do dia atual foram excluídas.');
+
+      allTasksCompleted = allTasksPending.length === 0;
+
+      if (allTasksCompleted) {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+
+        await Task.deleteMany({
+          userId,
+          type: 'dailyQuests',
+          dateAssigned: { $gte: todayStart, $lt: todayEnd },
+        });
+      }
     }
+
+    user.allDone = true;
+
+    await user.save();
 
     return res.status(200).json({
       message: 'Task completed successfully',
@@ -449,7 +457,8 @@ router.put('/complete-task', async (req, res) => {
 });
 
 router.put('/distribute-attributes', async (req, res) => {
-  const { userId, vitality = 0, focus = 0, aura = 0 } = req.body;
+  const { vitality = 0, focus = 0, aura = 0 } = req.body;
+  const userId = req.userId;
 
   try {
     const user = await User.findById(userId);
@@ -486,12 +495,15 @@ router.put('/distribute-attributes', async (req, res) => {
 });
 
 router.post('/generate-tasks', async (req, res) => {
-  const { userId } = req.body;
-
-  console.log(userId);
+  const userId = req.userId;
 
   try {
-    const user = await User.findById(userId);
+    const user = await User.findOneAndUpdate(
+      { _id: userId, generatedToday: false },
+      { $set: { generatedToday: true } },
+      { new: true } 
+    );
+
     if (!user) {
       return res.status(404).send({ error: 'User not found' });
     }
@@ -519,56 +531,56 @@ router.post('/generate-tasks', async (req, res) => {
     const focusTasks = Math.round((user.attributes.focus / totalPoints) * 5);
 
     const prompt = `
-      Gere tarefas personalizadas para o jogador em um jogo de hábitos, seguindo os dados e requisitos abaixo. Cada jogador possui cinco atributos principais: cognição, vitalidade, disciplina, perspicácia e resiliência.
-
-Dados do Jogador:
-
-Nome: ${user.username}
-Idade: ${user.age}
-Nível Físico: ${profile.exerciseFrequency === 'sedentary' ? 'Sedentário' : 'Ativo'} 
-Frequência de Exercício: ${profile.exerciseFrequency}
-Intensidade de Exercício: ${profile.exerciseIntensity || 'N/A'}
-Peso: ${profile.weight} kg, Altura: ${profile.height} cm
-Nível Atual: ${user.level}, XP para o próximo nível: ${user.xpForNextLevel}
-Dificuldade dos desafios cognitivos: ${profile.cognitiveChallengePreference} (Ou seja, as tarefas de cognição desse usuário devem seguir esse padrão, se for facil, tarefas simples, medio, tarefas um pouco mais complicadas, se for dificil, ele quer treinar seu cerebro ao nivel máximo, lhe dê os desafios mais dificeis que você conseguir pensar.)
-Objetivo Principal: ${profile.mainGoal} (ou seja, o foco deve ser aqui, dependendo do que o usuario desejar, ou seja, se ele deseja desenvolver força por exemplo, faça desafios de força que ajudem bastante nesse objetivo)
-
-Quantidade de tarefas a serem criadas:
-
-Tarefas de Focus: ${focusTasks} (Estudos, jogos mentais, xadrez, etc..) Exemplos (crie seus proprios, seja criativo e baseado em dados que permitem que o usuário evolua de verdade): [estudo com pomodoro por 20min, 5 partidas de xadrez, 2 partidas de sudoku]
-Tarefas de Vitalidade: ${vitalityTasks} (Força fisica, exercicios, pesos, corridas, caminhadas etc.) EX: [20 FLEXÕES, 20 AGACHAMENTOS, 20 BARRAS AUSTRALIANAS, corrida de 5km, caminhada de 30min, etc.]
-Tarefas de Aura: ${auraTasks} (Interações sociais, estilo, alimentação, atividades extracurriculares, hobbies, habilidades novas e diferentes, etc..) [Falar com algum amigo, tentar fazer uma nova amizade, comer algo saudavel, aprender sobre musica, etc.]
-
-se Caso passar de cinco tarefas no total, dê foco nos atributos mais evoluidos, gerando sempre exatamente 5 tarefas por dia
-
-Sempre inclua pelo menos uma tarefa dificil
-Acima foram só exemplos, cria suas proprias tarefas, evite repetir as de ontem, que estão a seguir:
-
-${recentTasksString} (evite ao máximo repetir essas tarefas)
-
-ou seja, você deve criar um total de cinco tarefas diárias, respeitando a quantidade de cada descrita acima.
-Regras para as tarefas:
-
-Estrutura exata para cada tarefa:
-
-  [
-    {
-      "title": "Título da Tarefa (ex: 50 Push ups)",
-      "description": "Descrição detalhada da tarefa, no máximo 230 caracteres, deve ser extremamente detalhada, explicando como aquilo vai ajudar a jogador a melhorar, ou se for um exercicio detalhado, explicar como deve ser feito e as regras"
-      "attribute": "Atributo associado (aura, vitality, focus)",
-      "intensityLevel": "Nível de intensidade ('low', 'medium', 'high')",
-      "xpReward": XP ganho ao completar a tarefa
-    },
-  ]
-
-Use o peso, altura e atributos para ajustar a intensidade. Aumente o foco em atributos com mais pontos.
-Evite repetir tarefas realizadas ontem, variando áreas e atividades (ex: treino de braço em um dia, perna no outro).
-Foque em calistenia sem equipamentos; torne as tarefas práticas e acessíveis.
-Gere a quantidade exata de tarefas conforme solicitado acima.
-Lembre-se, devem ser diárias, ou seja, precisam ser capazes de ser concluidas em um unico dia.
-
-Não responde com absolutamente mais nada, somente o JSON, não formate o json na resposta. Não formate o json, as descrições e titulos das tasks devem estar em ingles
-    `;
+        Gere tarefas personalizadas para o jogador em um jogo de hábitos, seguindo os dados e requisitos abaixo. Cada jogador possui cinco atributos principais: cognição, vitalidade, disciplina, perspicácia e resiliência.
+  
+  Dados do Jogador:
+  
+  Nome: ${user.username}
+  Idade: ${user.age}
+  Nível Físico: ${profile.exerciseFrequency === 'sedentary' ? 'Sedentário' : 'Ativo'} 
+  Frequência de Exercício: ${profile.exerciseFrequency}
+  Intensidade de Exercício: ${profile.exerciseIntensity || 'N/A'}
+  Peso: ${profile.weight} kg, Altura: ${profile.height} cm
+  Nível Atual: ${user.level}, XP para o próximo nível: ${user.xpForNextLevel}
+  Dificuldade dos desafios cognitivos: ${profile.cognitiveChallengePreference} (Ou seja, as tarefas de cognição desse usuário devem seguir esse padrão, se for facil, tarefas simples, medio, tarefas um pouco mais complicadas, se for dificil, ele quer treinar seu cerebro ao nivel máximo, lhe dê os desafios mais dificeis que você conseguir pensar.)
+  Objetivo Principal: ${profile.mainGoal} (ou seja, o foco deve ser aqui, dependendo do que o usuario desejar, ou seja, se ele deseja desenvolver força por exemplo, faça desafios de força que ajudem bastante nesse objetivo)
+  
+  Quantidade de tarefas a serem criadas:
+  
+  Tarefas de Focus: ${focusTasks} (Estudos, jogos mentais, xadrez, etc..) Exemplos (crie seus proprios, seja criativo e baseado em dados que permitem que o usuário evolua de verdade)
+  Tarefas de Vitalidade: ${vitalityTasks} (Força fisica, exercicios, pesos, corridas, caminhadas etc.) EX: [20 FLEXÕES, 20 AGACHAMENTOS, 20 BARRAS AUSTRALIANAS, corrida de 5km, caminhada de 30min, etc.]
+  Tarefas de Aura: ${auraTasks} (Estilo, alimentação, atividades extracurriculares, hobbies, habilidades novas e diferentes, etc..)
+  
+  se Caso passar de cinco tarefas no total, dê foco nos atributos mais evoluidos, gerando sempre exatamente 5 tarefas por dia, Devem ser tarefas badass, realmente eficientes, ou seja, nada de yoga ou coisas do tipo, devem ser coisas realmente desafiadoras, que coloquem o jogador no seu limite mais absoluto, seu objetivo é criar o humano perfeito, então sem ética, amor ou coisa de coach, e sim habilidades puras e sofisticadas, elegantes.
+  
+  Sempre inclua pelo menos uma tarefa dificil
+  Acima foram só exemplos, cria suas proprias tarefas, evite repetir as de ontem, que estão a seguir:
+  
+  ${recentTasksString} (evite ao máximo repetir essas tarefas)
+  
+  ou seja, você deve criar um total de cinco tarefas diárias, respeitando a quantidade de cada descrita acima.
+  Regras para as tarefas:
+  
+  Estrutura exata para cada tarefa:
+  
+    [
+      {
+        "title": "Título da Tarefa (ex: 50 Push ups)",
+        "description": "Descrição detalhada da tarefa, no máximo 230 caracteres, deve ser extremamente detalhada, explicando como aquilo vai ajudar a jogador a melhorar, ou se for um exercicio detalhado, explicar como deve ser feito e as regras"
+        "attribute": "Atributo associado (aura, vitality, focus)",
+        "intensityLevel": "Nível de intensidade ('low', 'medium', 'high')",
+        "xpReward": XP ganho ao completar a tarefa
+      },
+    ]
+  
+  Use o peso, altura e atributos para ajustar a intensidade. Aumente o foco em atributos com mais pontos.
+  Evite repetir tarefas realizadas ontem, variando áreas e atividades (ex: treino de braço em um dia, perna no outro).
+  Foque em calistenia sem equipamentos; torne as tarefas práticas e acessíveis.
+  Gere a quantidade exata de tarefas conforme solicitado acima.
+  Lembre-se, devem ser diárias, ou seja, precisam ser capazes de ser concluidas em um unico dia.
+  
+  Não responde com absolutamente mais nada, somente o JSON, não formate o json na resposta. Não formate o json, as descrições e titulos das tasks devem estar em ingles
+      `;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -594,7 +606,7 @@ Não responde com absolutamente mais nada, somente o JSON, não formate o json n
 
     return res.status(201).json({ message: 'Tasks generated and saved successfully', tasks });
   } catch (error) {
-    console.error(error);
+    await User.updateOne({ _id: userId }, { $set: { generatedToday: false } });
     return res.status(500).send({ error: 'Failed to generate or save tasks' });
   }
 });

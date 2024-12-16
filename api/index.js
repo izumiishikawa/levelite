@@ -5,9 +5,12 @@ const cors = require('cors');
 const cron = require('node-cron');
 const axios = require('axios');
 const Task = require('./models/tasks');
+const path = require("path");
 const User = require('./models/users'); // Certifique-se de ajustar o caminho do modelo User
 
 const app = express();
+
+app.use("/files", express.static(path.join(__dirname, "tmp", "uploads")));
 
 // Middleware para permitir CORS e parsing de JSON
 app.use(cors());
@@ -77,7 +80,7 @@ const endOfToday = () => {
   return now;
 };
 
-cron.schedule('59 23 * * *', async () => {
+cron.schedule('54 11 * * *', async () => {
   console.log('Iniciando tarefas do cron job consolidado...');
 
   const users = await User.find();
@@ -86,32 +89,30 @@ cron.schedule('59 23 * * *', async () => {
   console.log('Verificação de progresso diário iniciada...');
   for (const user of users) {
     try {
+      // Penaliza usuários na zona de penalidade
       if (user.inPenaltyZone) {
-        user.health = user.health - 35
+        user.health -= 35;
         user.inPenaltyZone = false;
       }
 
+      // Busca todas as tarefas pendentes de hoje
       const pendingTasks = await Task.find({
         userId: user._id,
+        type: "dailyQuests",
         status: 'pending',
         dateAssigned: { $gte: startOfToday(), $lt: endOfToday() },
       });
 
-      // Verifica se existem tarefas pendentes ou incompletas
-      const hasIncompleteTasks = await Task.exists({
-        userId: user._id,
-        dateAssigned: { $gte: startOfToday(), $lt: endOfToday() },
-        status: { $in: ['pending'] },
-      });
+      // Verifica se existem tarefas pendentes
+      const hasIncompleteTasks = pendingTasks.length > 0;
 
-      
       // Marca todas as tarefas pendentes como incompletas
       for (const task of pendingTasks) {
         task.status = 'incomplete';
         await task.save();
       }
 
-      // Zera a streak e gera penalidades se houver tarefas não concluídas
+      // Se houver tarefas incompletas, zera a streak e cria penalidades
       if (hasIncompleteTasks) {
         user.streak = 0;
         user.inPenaltyZone = true;
@@ -135,14 +136,16 @@ cron.schedule('59 23 * * *', async () => {
             xpReward: task.xpReward,
             type: 'penaltyTask',
             status: "pending",
-            dateAssigned: new Date(), // Data de penalidade é o momento atual
+            dateAssigned: new Date(),
           });
           savedTasks.push(savedTask);
         }
         console.log(`Tarefas de penalidade criadas para o usuário ${user._id}`);
       }
 
+      // Reseta campos do usuário para o próximo dia
       user.generatedToday = false;
+      user.allDone = false;
 
       await user.save();
     } catch (error) {
@@ -151,10 +154,20 @@ cron.schedule('59 23 * * *', async () => {
   }
   console.log('Verificação de progresso diário concluída.');
 
-  // 2. Geração de tarefas diárias
+  // 2. Reseta os campos generatedToday dos SkillBooks
+  console.log('Resetando campos generatedToday dos SkillBooks...');
+  try {
+    await SkillBook.updateMany({}, { $set: { generatedToday: false } });
+    console.log('Campos generatedToday resetados para todos os SkillBooks.');
+  } catch (error) {
+    console.error('Erro ao resetar campos generatedToday nos SkillBooks:', error.message);
+  }
+
+  // 3. Geração de tarefas diárias
   console.log('Geração de tarefas diárias iniciada...');
   for (const user of users) {
     try {
+      // Busca tarefas diárias de ontem
       const dailyTasks = await Task.find({
         userId: user._id,
         recurrence: 'daily',
@@ -162,6 +175,7 @@ cron.schedule('59 23 * * *', async () => {
       });
 
       for (const task of dailyTasks) {
+        // Verifica se a tarefa já foi recriada hoje
         const existingTask = await Task.findOne({
           userId: user._id,
           title: task.title,
@@ -195,6 +209,7 @@ cron.schedule('59 23 * * *', async () => {
 
   console.log('Cron job consolidado finalizado.');
 });
+
 
 /**
  * Inicia o servidor Express

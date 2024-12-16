@@ -9,6 +9,7 @@ const skillBookSchema = new mongoose.Schema({
     frequency: { type: String, enum: ['daily', 'weekly'], default: 'daily' },
   },
   dateCreated: { type: Date, default: Date.now },
+  generatedToday: { type: Boolean, default: false }
 });
 
 module.exports = mongoose.model('SkillBook', skillBookSchema);

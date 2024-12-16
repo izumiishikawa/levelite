@@ -1,12 +1,16 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 const url = 'https://novel-duckling-unlikely.ngrok-free.app';
 
-export const consultPlayerStatus = async (userId: string) => {
+export const consultPlayerStatus = async () => {
+  const userToken = await AsyncStorage.getItem('userToken');
+
   try {
-    const response = await axios.get(`${url}/user/profile?userId=${userId}`, {
+    const response = await axios.get(`${url}/user/profile`, {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
       },
     });
 
@@ -22,12 +26,169 @@ export const consultPlayerStatus = async (userId: string) => {
   }
 };
 
+export const userLogin = async (email: string, password: string) => {
+  try {
+    const response = await axios.post(
+      `${url}/auth/authenticate`,
+      { email, password },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      }
+    );
+
+    switch (response.status) {
+      case 200:
+        return response.data;
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error while calling getInfo API ', error);
+    throw error;
+  }
+};
+
+export const userRegister = async (username: string, email: string, password: string) => {
+  try {
+    const response = await axios.post(
+      `${url}/auth/register`,
+      { username, email, password },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      }
+    );
+
+    switch (response.status) {
+      case 201:
+        return response.data;
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error while calling getInfo API ', error);
+    throw error;
+  }
+};
+
+export const consultPlayerInventory = async (userId: string) => {
+  try {
+    const userToken = await AsyncStorage.getItem('userToken');
+
+    const response = await axios.get(`${url}/inventory/${userId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
+      },
+    });
+
+    switch (response.status) {
+      case 200:
+        return response.data;
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error while calling getInfo API ', error);
+    throw error;
+  }
+};
+
+export const useInventoryItem = async (userId: string, itemId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
+
+  try {
+    const response = await axios.post(
+      `${url}/inventory/${userId}/use`,
+      { itemId }, // Corpo da requisição contendo o ID do item
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
+        },
+      }
+    );
+
+    switch (response.status) {
+      case 200:
+        return response.data;
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error while using inventory item:', error);
+    throw error;
+  }
+};
+
+export const buyShopItem = async (userId: string, itemId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
+
+  try {
+    const response = await axios.post(
+      `${url}/inventory/${userId}/buy`,
+      { itemId }, // Corpo da requisição contendo o ID do item
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
+        },
+      }
+    );
+
+    switch (response.status) {
+      case 200:
+        return response.data;
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error while buying shop item:', error);
+    throw error;
+  }
+};
+
+export const getShopItems = async () => {
+  const userToken = await AsyncStorage.getItem('userToken');
+
+  try {
+    const response = await axios.get(`${url}/itemData/shop`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
+      },
+    });
+
+    switch (response.status) {
+      case 200:
+        return response.data;
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error while fetching shop items:', error);
+    throw error;
+  }
+};
+
 export const consultPendingTasks = async (userId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
+
   try {
     const response = await axios.get(`${url}/user/tasks?userId=${userId}`, {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
       },
     });
 
@@ -44,6 +205,7 @@ export const consultPendingTasks = async (userId: string) => {
 };
 
 export const setGeneratedToday = async (userId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
   try {
     const response = await axios.put(
       `${url}/user/generated-today`,
@@ -52,6 +214,7 @@ export const setGeneratedToday = async (userId: string) => {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
         },
       }
     );
@@ -68,8 +231,8 @@ export const setGeneratedToday = async (userId: string) => {
   }
 };
 
-
 export const setClassGeneratedToday = async (userId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
   try {
     const response = await axios.put(
       `${url}/user/class-generated-today`,
@@ -78,6 +241,7 @@ export const setClassGeneratedToday = async (userId: string) => {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
         },
       }
     );
@@ -94,15 +258,18 @@ export const setClassGeneratedToday = async (userId: string) => {
   }
 };
 
-
 export const restoreTask = async (taskId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
+
   try {
     const response = await axios.patch(
-      `${url}/user/tasks/restore?taskId=${taskId}`, // Rota para restaurar a tarefa
+      `${url}/user/tasks/restore?taskId=${taskId}`,
+      {},
       {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
         },
       }
     );
@@ -120,11 +287,13 @@ export const restoreTask = async (taskId: string) => {
 };
 
 export const consultPenaltyTasks = async (userId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
   try {
     const response = await axios.get(`${url}/user/penalty-tasks?userId=${userId}`, {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
       },
     });
 
@@ -141,11 +310,13 @@ export const consultPenaltyTasks = async (userId: string) => {
 };
 
 export const consultClassTasks = async (userId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
   try {
     const response = await axios.get(`${url}/class/tasks?userId=${userId}`, {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
       },
     });
 
@@ -162,14 +333,16 @@ export const consultClassTasks = async (userId: string) => {
 };
 
 export const completeTask = async (taskId: string, userId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
   try {
     const response = await axios.put(
       `${url}/user/complete-task?taskId=${taskId}`,
-      { userId },
+      {},
       {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          authorization: `Bearer ${userToken}`,
         },
       }
     );
@@ -186,15 +359,17 @@ export const completeTask = async (taskId: string, userId: string) => {
   }
 };
 
-export const createOrUpdatePlayerProfile = async (userId: string, profileData: any) => {
+export const createOrUpdatePlayerProfile = async (profileData: any) => {
+  const userToken = await AsyncStorage.getItem('userToken');
   try {
     const response = await axios.post(
       `${url}/auth/profile`, // Assumindo que essa rota seja '/user/profile'
-      { userId, ...profileData },
+      { ...profileData },
       {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
         },
       }
     );
@@ -220,6 +395,7 @@ export const distributeAttributes = async (
     focus?: number;
   }
 ) => {
+  const userToken = await AsyncStorage.getItem('userToken');
   try {
     const response = await axios.put(
       `${url}/user/distribute-attributes`,
@@ -228,6 +404,7 @@ export const distributeAttributes = async (
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
         },
       }
     );
@@ -245,11 +422,13 @@ export const distributeAttributes = async (
 };
 
 export const getSkillBookTasks = async (bookId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
   try {
     const response = await axios.get(`${url}/skillbooks/tasks/${bookId}`, {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
       },
     });
 
@@ -261,18 +440,24 @@ export const getSkillBookTasks = async (bookId: string) => {
     }
   } catch (error) {
     console.error('Error while fetching SkillBooks', error);
-    throw error; // Repassa o erro para ser tratado onde a função for chamada
+    return null; // Repassa o erro para ser tratado onde a função for chamada
   }
 };
 
 export const generateSkillBookTasks = async (bookId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
   try {
-    const response = await axios.post(`${url}/skillbooks/generate-skillbook-tasks/${bookId}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-    });
+    const response = await axios.post(
+      `${url}/skillbooks/generate-skillbook-tasks/${bookId}`,
+      {},
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
+        },
+      }
+    );
 
     if (response.status === 201) {
       return response.data;
@@ -286,6 +471,7 @@ export const generateSkillBookTasks = async (bookId: string) => {
 };
 
 export const generateClassTasks = async (userId: string, classId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
   try {
     const response = await axios.post(
       `${url}/class/generate-class-tasks`,
@@ -294,6 +480,7 @@ export const generateClassTasks = async (userId: string, classId: string) => {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
         },
       }
     );
@@ -310,11 +497,13 @@ export const generateClassTasks = async (userId: string, classId: string) => {
 };
 
 export const getUserSkillBooks = async (userId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
   try {
-    const response = await axios.get(`${url}/skillbooks/user-skillbooks/${userId}`, {
+    const response = await axios.get(`${url}/skillbooks/user-skillbooks/`, {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
       },
     });
 
@@ -341,6 +530,8 @@ export const createSkillBook = async (
     };
   }
 ) => {
+  const userToken = await AsyncStorage.getItem('userToken');
+
   try {
     const response = await axios.post(
       `${url}/skillbooks/create-skillbook`,
@@ -349,6 +540,7 @@ export const createSkillBook = async (
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
         },
       }
     );
@@ -373,11 +565,13 @@ export const createUserTask = async (taskData: {
   recurrence: 'daily' | 'weekly';
   xpReward: number;
 }) => {
+  const userToken = await AsyncStorage.getItem('userToken');
   try {
     const response = await axios.post(`${url}/user/create-user-task`, taskData, {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
       },
     });
 
@@ -394,11 +588,13 @@ export const createUserTask = async (taskData: {
 };
 
 export const deleteTask = async (taskId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
   try {
     const response = await axios.delete(`${url}/user/delete-task?taskId=${taskId}`, {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
       },
     });
 
@@ -415,6 +611,7 @@ export const deleteTask = async (taskId: string) => {
 };
 
 export const generateAiTasks = async (userId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
   try {
     const response = await axios.post(
       `${url}/user/generate-tasks`,
@@ -423,6 +620,7 @@ export const generateAiTasks = async (userId: string) => {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
         },
       }
     );
@@ -440,6 +638,7 @@ export const generateAiTasks = async (userId: string) => {
 };
 
 export const updateStreak = async (userId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
   try {
     const response = await axios.put(
       `${url}/streak/update-streak`,
@@ -448,6 +647,7 @@ export const updateStreak = async (userId: string) => {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
         },
       }
     );
