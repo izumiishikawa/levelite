@@ -43,7 +43,6 @@ router.use(authMiddleware);
 
 router.get('/profile', async (req, res) => {
   try {
-
     const user = await User.findById(req.userId);
     const profile = await Profile.findOne({ userId: req.userId });
 
@@ -101,70 +100,40 @@ router.put('/distribute-points', async (req, res) => {
   }
 });
 
-router.put('/progress', async (req, res) => {
-  const { xpGained } = req.body;
-
-  try {
-    const user = await User.findById(req.userId);
-    if (!user) {
-      return res.status(404).send({ error: 'User not found' });
-    }
-
-    user.currentXP += xpGained;
-
-    while (user.currentXP >= user.xpForNextLevel) {
-      user.currentXP -= user.xpForNextLevel;
-      user.level += 1;
-      user.pointsToDistribute += 3;
-      user.xpForNextLevel += 50;
-    }
-
-    await user.save();
-
-    return res.status(200).json(user);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).send({ error: 'Failed to update progress' });
-  }
-});
-
-router.get('/achievements', async (req, res) => {
-  try {
-    const achievements = await Achievement.find({ userId: req.userId });
-
-    if (!achievements) {
-      return res.status(404).send({ error: 'No achievements found' });
-    }
-
-    return res.status(200).json(achievements);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).send({ error: 'Failed to retrieve achievements' });
-  }
-});
-
 router.get('/tasks', async (req, res) => {
   try {
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    const getStartAndEndOfDay = () => {
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setDate(endOfDay.getDate() + 1);
+      return { startOfDay, endOfDay };
+    };
 
-    const tasks = await Task.find({
+    const { startOfDay, endOfDay } = getStartAndEndOfDay();
+
+    const pendingTasksFilter = {
+      status: 'pending',
+      skillBookId: null,
+      $or: [{ type: 'dailyQuests' }, { type: 'userTask' }],
+    };
+
+    const completedTasksFilter = {
+      status: 'completed',
+      dateCompleted: { $gte: startOfDay, $lt: endOfDay },
+      $or: [{ type: 'dailyQuests' }, { type: 'userTask' }],
+    };
+
+    const filters = {
       userId: req.userId,
-      $or: [
-        { status: 'pending', skillBookId: null, type: 'dailyQuests' },
-        { status: 'pending', skillBookId: null, type: 'userTask' },
-        {
-          status: 'completed',
-          type: 'dailyQuests',
-          dateCompleted: { $gte: startOfDay, $lt: endOfDay },
-        },
-      ],
-    });
+      $or: [pendingTasksFilter, completedTasksFilter],
+    };
 
-    return res.status(200).json(tasks);
+    const tasks = await Task.find(filters);
+
+    res.status(200).json(tasks);
   } catch (error) {
-    return res.status(500).send({ error: 'Failed to retrieve tasks' });
+    res.status(500).json({ error: 'Failed to retrieve tasks', details: error.message });
   }
 });
 
@@ -299,40 +268,6 @@ router.delete('/delete-task', async (req, res) => {
   }
 });
 
-router.put('/generated-today', async (req, res) => {
-  const userId = req.userId;
-
-  try {
-    const user = await User.findByIdAndUpdate(userId, { generatedToday: true }, { new: true });
-
-    if (!user) {
-      return res.status(404).send({ error: 'User not found' });
-    }
-
-    return res.status(200).json({ message: 'User updated successfully', user });
-  } catch (error) {
-    console.error('Failed to update user:', error);
-    return res.status(500).send({ error: 'Failed to update user' });
-  }
-});
-
-router.put('/class-generated-today', async (req, res) => {
-  const userId = req.userId;
-
-  try {
-    const user = await User.findByIdAndUpdate(userId, { classGeneratedToday: true }, { new: true });
-
-    if (!user) {
-      return res.status(404).send({ error: 'User not found' });
-    }
-
-    return res.status(200).json({ message: 'User updated successfully', user });
-  } catch (error) {
-    console.error('Failed to update user:', error);
-    return res.status(500).send({ error: 'Failed to update user' });
-  }
-});
-
 router.put('/complete-task', async (req, res) => {
   const { taskId } = req.query;
   const userId = req.userId;
@@ -358,12 +293,14 @@ router.put('/complete-task', async (req, res) => {
     while (user.currentXP >= user.xpForNextLevel) {
       user.currentXP -= user.xpForNextLevel;
       user.level += 1;
-      user.pointsToDistribute += 3;
+      user.pointsToDistribute += 2;
       user.xpForNextLevel = calculateXpForNextLevel(user.level, user.xpForNextLevel);
       leveledUp = true;
     }
 
     await task.save();
+
+    let allTasksCompleted = false;
 
     if (task.type === 'dailyQuests') {
       const remainingDailyTasks = await Task.find({
@@ -372,10 +309,14 @@ router.put('/complete-task', async (req, res) => {
         status: 'pending',
       });
 
-      if (remainingDailyTasks.length === 0) {
-        user.coins = (user.coins || 0) + 100;
-        user.streak = user.streak + 1;
-        user.lastDailyCompletion = new Date();
+      if (!user.allDone) {
+        if (remainingDailyTasks.length === 0) {
+          user.coins = (user.coins || 0) + 100;
+          user.streak = user.streak + 1;
+          user.lastDailyCompletion = new Date();
+          allTasksCompleted = true;
+          user.allDone = true;
+        }
       }
     }
 
@@ -397,35 +338,6 @@ router.put('/complete-task', async (req, res) => {
         user.inPenaltyZone = false;
       }
     }
-
-    let allTasksCompleted = false;
-
-    if (!user.allDone) {
-      const allTasksPending = await Task.find({
-        userId,
-        status: 'pending',
-        type: 'dailyQuests',
-      });
-
-
-      allTasksCompleted = allTasksPending.length === 0;
-
-      if (allTasksCompleted) {
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-
-        const todayEnd = new Date();
-        todayEnd.setHours(23, 59, 59, 999);
-
-        await Task.deleteMany({
-          userId,
-          type: 'dailyQuests',
-          dateAssigned: { $gte: todayStart, $lt: todayEnd },
-        });
-      }
-    }
-
-    user.allDone = true;
 
     await user.save();
 
@@ -501,7 +413,7 @@ router.post('/generate-tasks', async (req, res) => {
     const user = await User.findOneAndUpdate(
       { _id: userId, generatedToday: false },
       { $set: { generatedToday: true } },
-      { new: true } 
+      { new: true }
     );
 
     if (!user) {
@@ -573,6 +485,7 @@ router.post('/generate-tasks', async (req, res) => {
       },
     ]
   
+  A dificuldade das tarefas devem se basear nas caracteristicas do jogador principalmente no seu level, por exemplo, se ele estiver no level 1, devem ser tarefas mais faceis e rapidas de serem concluidas, agr, se ele estiver no nivel 20, ja devem ser consideravelmente mais dificeis, deve aumentar exponencialmente com relação ao nivel, por exemplo, ele pode começar com 20 flexões no nivel 1, e no nivel 20 ja estar fazendo 100, entendeu? isso é a parte mais importante de todas.
   Use o peso, altura e atributos para ajustar a intensidade. Aumente o foco em atributos com mais pontos.
   Evite repetir tarefas realizadas ontem, variando áreas e atividades (ex: treino de braço em um dia, perna no outro).
   Foque em calistenia sem equipamentos; torne as tarefas práticas e acessíveis.

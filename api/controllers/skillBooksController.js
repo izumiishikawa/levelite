@@ -67,15 +67,15 @@ router.post('/create-skillbook', async (req, res) => {
     res.status(500).json({ error: 'Failed to create Skill Book' });
   }
 });
+
 router.post('/generate-skillbook-tasks/:bookId', async (req, res) => {
   const { bookId } = req.params;
   const userId = req.userId;
 
   try {
-    // Verifica se o Skill Book já teve tarefas geradas hoje
     const skillBook = await SkillBook.findOneAndUpdate(
       { _id: bookId, userId, generatedToday: false },
-      { $set: { generatedToday: true } }, // Marca como gerado
+      { $set: { generatedToday: true } },
       { new: true }
     );
 
@@ -85,7 +85,6 @@ router.post('/generate-skillbook-tasks/:bookId', async (req, res) => {
 
     const user = await User.findById(userId);
 
-    // Geração de tarefas
     const prompt = `
      Gere 5 tarefas diárias para o tema "${skillBook.focus}" com base nos seguintes parâmetros:
   - Dificuldade: ${skillBook.parameters.difficulty}
@@ -115,7 +114,6 @@ router.post('/generate-skillbook-tasks/:bookId', async (req, res) => {
 
     const tasks = JSON.parse(completion.choices[0].message.content);
 
-    // Criação das tarefas no banco
     for (const task of tasks) {
       const xpReward = calculateTaskXpReward(user.level, task.intensityLevel, user.xpForNextLevel);
       await Task.create({
@@ -134,7 +132,6 @@ router.post('/generate-skillbook-tasks/:bookId', async (req, res) => {
   } catch (error) {
     console.error(error);
 
-    // Garante que o bloqueio será liberado
     await SkillBook.updateOne({ _id: bookId }, { $set: { generatedToday: false } });
 
     res.status(500).json({ error: 'Failed to generate tasks' });
@@ -145,7 +142,6 @@ router.get('/tasks/:bookId', async (req, res) => {
   const { bookId } = req.params;
 
   try {
-    // Busca tarefas com status 'pending' ou 'completed'
     const tasks = await Task.find({
       skillBookId: bookId,
       $or: [{ status: 'pending' }, { status: 'completed' }],

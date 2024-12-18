@@ -88,7 +88,6 @@ router.post('/authenticate', async (req, res) => {
       return res.status(404).send({ error: `The email "${email}" was not found in our system.` });
     }
 
-    // utiliza a função compare do bcrypt para comparar a senha enviada com a armazenada no banco de dados, pois a senha no banco está criptografada em blowfish
     const passwordMatch = await bcrypt.compare(password, check_user.passwordHash);
 
     if (!passwordMatch) {
@@ -177,7 +176,7 @@ router.get('/consult', async (req, res) => {
 
     res.json(user);
   } catch (error) {
-    console.error(error); // Log do erro para depuração
+    console.error(error); 
     res.status(500).send('Internal Server Error');
   }
 });

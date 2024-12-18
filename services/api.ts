@@ -21,7 +21,6 @@ export const consultPlayerStatus = async () => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while calling getInfo API ', error);
     throw error;
   }
 };
@@ -46,7 +45,6 @@ export const userLogin = async (email: string, password: string) => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while calling getInfo API ', error);
     throw error;
   }
 };
@@ -71,7 +69,6 @@ export const userRegister = async (username: string, email: string, password: st
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while calling getInfo API ', error);
     throw error;
   }
 };
@@ -95,7 +92,6 @@ export const consultPlayerInventory = async (userId: string) => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while calling getInfo API ', error);
     throw error;
   }
 };
@@ -123,7 +119,6 @@ export const useInventoryItem = async (userId: string, itemId: string) => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while using inventory item:', error);
     throw error;
   }
 };
@@ -151,7 +146,6 @@ export const buyShopItem = async (userId: string, itemId: string) => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while buying shop item:', error);
     throw error;
   }
 };
@@ -175,7 +169,6 @@ export const getShopItems = async () => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while fetching shop items:', error);
     throw error;
   }
 };
@@ -199,7 +192,6 @@ export const consultPendingTasks = async (userId: string) => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error(error);
     throw error;
   }
 };
@@ -281,7 +273,6 @@ export const restoreTask = async (taskId: string) => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while calling restoreTask API', error);
     throw error;
   }
 };
@@ -304,7 +295,6 @@ export const consultPenaltyTasks = async (userId: string) => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while calling getInfo API ', error);
     throw error;
   }
 };
@@ -327,7 +317,6 @@ export const consultClassTasks = async (userId: string) => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while calling getInfo API ', error);
     throw error;
   }
 };
@@ -354,7 +343,6 @@ export const completeTask = async (taskId: string, userId: string) => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while calling getInfo API ', error);
     throw error;
   }
 };
@@ -382,7 +370,6 @@ export const createOrUpdatePlayerProfile = async (profileData: any) => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while calling createOrUpdatePlayerProfile API', error);
     throw error;
   }
 };
@@ -416,7 +403,6 @@ export const distributeAttributes = async (
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while distributing attributes', error);
     throw error;
   }
 };
@@ -439,7 +425,6 @@ export const getSkillBookTasks = async (bookId: string) => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while fetching SkillBooks', error);
     return null; // Repassa o erro para ser tratado onde a função for chamada
   }
 };
@@ -465,7 +450,6 @@ export const generateSkillBookTasks = async (bookId: string) => {
       throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while creating skillbook', error);
     throw error;
   }
 };
@@ -491,7 +475,6 @@ export const generateClassTasks = async (userId: string, classId: string) => {
       throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while creating skillbook', error);
     throw error;
   }
 };
@@ -514,7 +497,6 @@ export const getUserSkillBooks = async (userId: string) => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while fetching SkillBooks', error);
     throw error; // Repassa o erro para ser tratado onde a função for chamada
   }
 };
@@ -551,7 +533,6 @@ export const createSkillBook = async (
       throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while creating skillbook', error);
     throw error;
   }
 };
@@ -582,7 +563,6 @@ export const createUserTask = async (taskData: {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while creating user task', error);
     throw error; // Repassa o erro para ser tratado onde a função for chamada
   }
 };
@@ -605,7 +585,6 @@ export const deleteTask = async (taskId: string) => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while deleting user task', error);
     throw error; // Repassa o erro para ser tratado onde a função for chamada
   }
 };
@@ -632,7 +611,6 @@ export const generateAiTasks = async (userId: string) => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while creating user task', error);
     throw error; // Repassa o erro para ser tratado onde a função for chamada
   }
 };
@@ -659,7 +637,6 @@ export const updateStreak = async (userId: string) => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error while updating streak ', error);
     throw error;
   }
 };

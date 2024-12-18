@@ -9,6 +9,7 @@ interface Attributes {
 interface PlayerData {
   _id: string;
   username: string;
+  passwordHash: string;
   email: string;
   level: number;
   currentXP: number;
@@ -22,23 +23,27 @@ interface PlayerData {
   age: number;
   height: number;
   inPenaltyZone: boolean;
-  mainGoal: string; // Adicionado
-  exerciseFrequency: string; // Adicionado
-  exerciseIntensity: string; // Adicionado
-  cognitiveChallengePreference: string; // Adicionado
-  selfDisciplineLevel: string; // Adicionado
-  studyFrequency: string; // Adicionado
-  health: number,
-  maxHealth: number,
-  mana: number,
-  maxMana: number,
-  coins: number,
-  allTasksDone: boolean,
-  selectedClass: string,
-  generatedToday: boolean,
-  classGeneratedToday: boolean,
-  skillBookGeneratedToday: boolean,
-  totalExp: number,
+  mainGoal: string;
+  exerciseFrequency: string;
+  exerciseIntensity: string;
+  cognitiveChallengePreference: string;
+  selfDisciplineLevel: string;
+  studyFrequency: string;
+  health: number;
+  maxHealth: number;
+  mana: number;
+  maxMana: number;
+  coins: number;
+  allTasksDone: boolean;
+  selectedClass: string;
+  generatedToday: boolean;
+  classGeneratedToday: boolean;
+  skillBookGeneratedToday: boolean;
+  totalExp: number;
+  onboarded: boolean;
+  lastTaskCompletedAt: string | null;
+  gems: number;
+  allDone: boolean;
 }
 
 interface PlayerContextType {
@@ -50,6 +55,7 @@ export const AppUserContext = createContext<PlayerContextType>({
   playerData: {
     _id: "",
     username: "",
+    passwordHash: "",
     email: "",
     level: 0,
     currentXP: 0,
@@ -67,12 +73,12 @@ export const AppUserContext = createContext<PlayerContextType>({
     age: 0,
     height: 0,
     inPenaltyZone: false,
-    mainGoal: "", // Adicionado
-    exerciseFrequency: "", // Adicionado
-    exerciseIntensity: "", // Adicionado
-    cognitiveChallengePreference: "", // Adicionado
-    selfDisciplineLevel: "", // Adicionado
-    studyFrequency: "", // Adicionado
+    mainGoal: "",
+    exerciseFrequency: "",
+    exerciseIntensity: "",
+    cognitiveChallengePreference: "",
+    selfDisciplineLevel: "",
+    studyFrequency: "",
     health: 0,
     maxHealth: 0,
     mana: 0,
@@ -84,6 +90,10 @@ export const AppUserContext = createContext<PlayerContextType>({
     classGeneratedToday: false,
     skillBookGeneratedToday: false,
     totalExp: 0,
+    onboarded: false,
+    lastTaskCompletedAt: null,
+    gems: 0,
+    allDone: false,
   },
   setPlayerData: () => {},
 });

@@ -9,8 +9,9 @@ const HimariScreen: React.FC<HimariScreenProps> = ({ onNext }) => {
   const [isGifCompleted, setIsGifCompleted] = useState(false);
 
   return (
-    <View className="flex-1 w-full absolute h-full bg-black/90 justify-end items-center">
+    <View className="absolute h-full w-full flex-1 items-center justify-end bg-black/90">
       <Image
+        resizeMethod="resize"
         source={
           isGifCompleted
             ? require('../../assets/himaribig_static.png') // Imagem estática do último quadro do GIF
@@ -25,13 +26,8 @@ const HimariScreen: React.FC<HimariScreenProps> = ({ onNext }) => {
           }
         }}
       />
-      <TouchableOpacity
-        className="mb-5 w-4/5 bg-[--accent] py-3 rounded-lg"
-        onPress={onNext}
-      >
-        <Text className="text-white text-center font-bold text-lg">
-          Okay, thank you!
-        </Text>
+      <TouchableOpacity className="mb-5 w-4/5 rounded-lg bg-[--accent] py-3" onPress={onNext}>
+        <Text className="text-center text-lg font-bold text-white">Okay, thank you!</Text>
       </TouchableOpacity>
     </View>
   );

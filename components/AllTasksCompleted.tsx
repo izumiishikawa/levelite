@@ -5,6 +5,8 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { AppUserContext } from '~/contexts/AppUserContext';
 import Text from './Text';
 import AnimatedRollingNumbers from './AnimatedRolling';
+import { useShallow } from 'zustand/shallow';
+import { useCoinsAndStreakStore, usePlayerDataStore } from '~/stores/mainStore';
 
 const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -49,7 +51,14 @@ const StreakCalendar = ({ streak }: { streak: number }) => {
 
 
 export default function AllTasksCompleted({ onComplete }: { onComplete: () => void }) {
-  const { playerData } = useContext(AppUserContext);
+  const { id } = usePlayerDataStore(
+    useShallow((state) => ({ id: state.id }))
+  );
+  
+  const { streak } = useCoinsAndStreakStore(
+    useShallow((state) => ({ streak: state.streak }))
+  );
+  
   const [currentStep, setCurrentStep] = useState(0);
   const [showCoinSplash, setShowCoinSplash] = useState(false);
 
@@ -59,7 +68,7 @@ export default function AllTasksCompleted({ onComplete }: { onComplete: () => vo
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [playerData]);
+  }, [id]);
 
   const steps = [
     {
@@ -98,13 +107,13 @@ export default function AllTasksCompleted({ onComplete }: { onComplete: () => vo
             source={require('../assets/streak.json')}
           />
           <Text style={styles.streakNumber}>
-            <AnimatedRollingNumbers value={playerData?.streak + 1} textColor='#FF9600' />
+            <AnimatedRollingNumbers value={streak + 1} textColor='#FF9600' />
           </Text>
           {/* <StreakCalendar streak={playerData?.streak || 0} /> */}
           <Text style={styles.contentTextStreak}>
-            {(playerData?.streak + 1) === 1
+            {(streak + 1) === 1
               ? 'You started a new streak! Keep completing your daily tasks to increase your streak.'
-              : `Congratulations! Your streak is now ${playerData?.streak + 1} consecutive days.`}
+              : `Congratulations! Your streak is now ${streak + 1} consecutive days.`}
           </Text>
         </View>
       ),
@@ -127,7 +136,7 @@ export default function AllTasksCompleted({ onComplete }: { onComplete: () => vo
       statusBarTranslucent
     >
       <View style={styles.overlay}>
-        {playerData && (
+        {id && (
           <>
             <View style={styles.contentContainer}>{steps[currentStep].content}</View>
             <View style={styles.nextButtonContainer}>

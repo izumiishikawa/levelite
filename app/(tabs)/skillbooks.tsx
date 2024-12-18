@@ -10,12 +10,14 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { useShallow } from 'zustand/shallow';
 import { SkillBook } from '~/components/SkillBook';
 import { AppUserContext } from '~/contexts/AppUserContext';
 import { createSkillBook, getUserSkillBooks } from '~/services/api';
+import { usePlayerDataStore } from '~/stores/mainStore';
 
 const SkillBooks: React.FC = () => {
-  const { playerData } = useContext(AppUserContext);
+  const {id} = usePlayerDataStore()
   const [isCreating, setIsCreating] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -27,7 +29,7 @@ const SkillBooks: React.FC = () => {
   const fetchSkillBooks = async () => {
     try {
       setIsLoading(true);
-      const skillBooks = await getUserSkillBooks(playerData._id);
+      const skillBooks = await getUserSkillBooks(id);
       setSkillBooks(skillBooks);
     } catch (error) {
       setSkillBooks([]);
@@ -64,7 +66,7 @@ const SkillBooks: React.FC = () => {
         },
       };
 
-      await createSkillBook(playerData._id, newSkillBook);
+      await createSkillBook(id, newSkillBook);
 
       alert('SkillBook criado com sucesso!');
       setIsCreating(false);

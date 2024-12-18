@@ -77,7 +77,7 @@ export const ClassSelectionScreen: React.FC<ClassSelectionScreenProps> = ({
               position: "relative"
             }}>
             <View className="flex w-[80%] justify-center mx-auto items-center">
-              <Image source={cls.icon} style={{ width: 60, height: 60 }} resizeMode="contain" />
+              <Image           resizeMethod='resize' source={cls.icon} style={{ width: 60, height: 60 }} resizeMode="contain" />
               <Text className="mt-2 text-center text-lg font-bold text-white">{cls.name}</Text>
             </View>
             {isExpanded && (

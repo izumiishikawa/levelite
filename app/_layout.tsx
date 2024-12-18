@@ -7,12 +7,20 @@ import { ThemeProvider as NavThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { AppUserContext } from '~/contexts/AppUserContext';
 import { useColorScheme, useInitialAndroidBarSync } from '~/lib/useColorScheme';
 import { NAV_THEME } from '~/theme';
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { consultPlayerStatus } from '~/services/api';
+import {
+  useAttributesStore,
+  useCoinsAndStreakStore,
+  useHealthAndManaStore,
+  useLevelsAndExpStore,
+  usePenaltyZoneStore,
+  usePlayerDataStore,
+} from '~/stores/mainStore';
+
 import {
   useFonts,
   Inter_100Thin,
@@ -25,12 +33,14 @@ import {
   Inter_800ExtraBold,
   Inter_900Black,
 } from '@expo-google-fonts/inter';
+
 import { OnboardingScreens } from '../components/Onboarding/OnboardingScreens';
 import * as SplashScreen from 'expo-splash-screen';
 import { View } from 'react-native';
 import Text from '~/components/Text';
 import HimariScreen from '~/components/Onboarding/HimariIntroduction';
 import AuthScreen from './authscreen';
+import { SnackBarProvider } from '~/contexts/SnackBarContext';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -39,24 +49,81 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   useInitialAndroidBarSync();
   const { colorScheme } = useColorScheme();
-  const [playerData, setPlayerData] = useState<any>(null);
   const [haveToken, setHaveToken] = useState<boolean>(true);
-  const [showHimari, setShowHimari] = useState(false); // Exibição da Himari
+  const [showHimari, setShowHimari] = useState(false);
 
   const initializePlayerData = async () => {
     try {
       const userToken = await AsyncStorage.getItem('userToken');
 
       if (userToken) {
-        setHaveToken(true)
+        setHaveToken(true);
         const storedPlayerData = await consultPlayerStatus();
+
         if (storedPlayerData) {
-          setPlayerData(storedPlayerData);
+          const {
+            _id,
+            onboarded,
+            generatedToday,
+            weight,
+            height,
+            username,
+            selectedClass,
+            coins,
+            streak,
+            gems,
+            level,
+            currentXP,
+            xpForNextLevel,
+            pointsToDistribute,
+            totalExp,
+            inPenaltyZone,
+            attributes,
+            health,
+            maxHealth,
+            mana,
+            maxMana,
+          } = storedPlayerData;
+
+          // Atualizar stores diretamente
+          const playerStore = usePlayerDataStore.getState();
+          playerStore.setId(_id);
+          playerStore.setGeneratedToday(generatedToday);
+          playerStore.setSelectedClass(selectedClass);
+          playerStore.setUsername(username);
+          playerStore.setWeight(weight);
+          playerStore.setHeight(height);
+          playerStore.setOnboarded(onboarded)
+
+          const coinsAndStreakStore = useCoinsAndStreakStore.getState();
+          coinsAndStreakStore.setCoins(coins);
+          coinsAndStreakStore.setStreak(streak);
+          coinsAndStreakStore.setGems(gems);
+
+          const levelsAndExpStore = useLevelsAndExpStore.getState();
+          levelsAndExpStore.setLevel(level);
+          levelsAndExpStore.setCurrentXP(currentXP);
+          levelsAndExpStore.setXpForNextLevel(xpForNextLevel);
+          levelsAndExpStore.setPointsToDistribute(pointsToDistribute);
+          levelsAndExpStore.setTotalExp(totalExp);
+
+          const penaltyZoneStore = usePenaltyZoneStore.getState();
+          penaltyZoneStore.setInPenaltyZone(inPenaltyZone);
+
+          const attributesStore = useAttributesStore.getState();
+          attributesStore.setVitality(attributes.vitality);
+          attributesStore.setFocus(attributes.focus);
+          attributesStore.setAura(attributes.aura);
+
+          const healthAndManaStore = useHealthAndManaStore.getState();
+          healthAndManaStore.setHealth(health);
+          healthAndManaStore.setMaxHealth(maxHealth);
+          healthAndManaStore.setMana(mana);
+          healthAndManaStore.setMaxMana(maxMana);
         }
       } else {
         setHaveToken(false);
       }
-    
     } catch (err) {
       console.error('Erro ao buscar dados do jogador:', err);
     } finally {
@@ -68,7 +135,8 @@ export default function RootLayout() {
     const hasLaunched = await AsyncStorage.getItem('hasLaunched');
     if (!hasLaunched) {
       await AsyncStorage.setItem('hasLaunched', 'true');
-      setPlayerData((prev: any) => ({ ...prev, onboarded: false }));
+      const playerStore = usePlayerDataStore.getState();
+      playerStore.setUsername('');
     } else {
       initializePlayerData();
     }
@@ -80,19 +148,16 @@ export default function RootLayout() {
 
   const handleOnboardingComplete = async () => {
     try {
-      const updatedPlayerData = {
-        ...playerData,
-        onboarded: true,
-      };
-      setPlayerData(updatedPlayerData);
-      setShowHimari(true); // Exibe Himari após o onboarding
+      const playerStore = usePlayerDataStore.getState();
+      playerStore.setOnboarded(true);
+      setShowHimari(true);
     } catch (error) {
       console.error('Erro ao finalizar o onboarding:', error);
     }
   };
 
   const handleHimariNext = () => {
-    setShowHimari(false); 
+    setShowHimari(false);
   };
 
   const [fontsLoaded, fontsError] = useFonts({
@@ -122,25 +187,16 @@ export default function RootLayout() {
   }
 
   if (!haveToken) {
-    return (
-      <AuthScreen onComplete={() => initializePlayerData()} />
-    )
+    return <AuthScreen onComplete={() => initializePlayerData()} />;
   }
 
-  if (!playerData) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: '#fff', fontSize: 16 }}>Carregando jogador...</Text>
-      </View>
-    );
-  }
-
-  if (!playerData.onboarded) {
+  const playerStore = usePlayerDataStore.getState();
+  if (!playerStore.onboarded) {
     return <OnboardingScreens onComplete={handleOnboardingComplete} />;
   }
 
   return (
-    <AppUserContext.Provider value={{ playerData, setPlayerData }}>
+    <SnackBarProvider>
       <StatusBar style="light" />
       <GestureHandlerRootView style={{ flex: 1 }}>
         <BottomSheetModalProvider>
@@ -148,12 +204,24 @@ export default function RootLayout() {
             <NavThemeProvider value={NAV_THEME[colorScheme]}>
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="(tabs)" />
+                <Stack.Screen
+                  name="create_task"
+                  options={{ presentation: 'transparentModal', animation: 'fade_from_bottom' }}
+                />
+                <Stack.Screen
+                  name="shop_item"
+                  options={{ presentation: 'transparentModal', animation: 'fade' }}
+                />
+                <Stack.Screen
+                  name="profile_item"
+                  options={{ presentation: 'transparentModal', animation: 'fade' }}
+                />
               </Stack>
               {showHimari && <HimariScreen onNext={handleHimariNext} />}
             </NavThemeProvider>
           </ActionSheetProvider>
         </BottomSheetModalProvider>
       </GestureHandlerRootView>
-    </AppUserContext.Provider>
+    </SnackBarProvider>
   );
 }

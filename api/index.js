@@ -80,7 +80,7 @@ const endOfToday = () => {
   return now;
 };
 
-cron.schedule('54 11 * * *', async () => {
+cron.schedule('59 23 * * *', async () => {
   console.log('Iniciando tarefas do cron job consolidado...');
 
   const users = await User.find();

@@ -1,25 +1,19 @@
 import { Tabs } from 'expo-router';
-import React, { useState, useReducer, useRef, useContext, useCallback } from 'react';
+import React, { useState, useReducer, useRef, useCallback, useContext } from 'react';
 import { StyleSheet, Image, LayoutChangeEvent, TouchableOpacity, View } from 'react-native';
 import Text from '~/components/Text';
 import ProfileBottomSheet from '~/components/ProfileBottomSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import LottieView from 'lottie-react-native';
-import { AppUserContext } from '~/contexts/AppUserContext';
 import { classes } from '~/utils/classes';
 import AnimatedRollingNumbers from '~/components/AnimatedRolling';
+import { AppUserContext } from '~/contexts/AppUserContext';
+import { useCoinsAndStreakStore, usePlayerDataStore } from '~/stores/mainStore';
 
 interface Class {
   id: string;
   icon: any;
-}
-
-interface PlayerData {
-  coins?: number;
-  gems?: number;
-  streak?: number;
-  selectedClass?: string;
 }
 
 interface TabBarIconProps {
@@ -42,8 +36,9 @@ interface AnimatedTabBarProps {
   state: {
     index: number;
     routes: {
-      name(name: any): void; key: string 
-}[];
+      name: string;
+      key: string;
+    }[];
   };
   navigation: any;
   descriptors: { [key: string]: RouteDescriptor };
@@ -59,66 +54,61 @@ interface TabBarComponentProps {
 const HeaderLeft = React.memo(({ selectedClass }: { selectedClass?: Class }) => (
   <View style={{ marginLeft: 10 }}>
     {selectedClass ? (
-      <Image source={selectedClass.icon} style={{ width: 30, height: 30 }} />
+      <Image resizeMethod="resize" source={selectedClass.icon} style={{ width: 30, height: 30 }} />
     ) : (
       <Text>Classe</Text>
     )}
   </View>
 ));
 
-const HeaderRight = React.memo(({ playerData, toggleBottomSheet }: { playerData?: PlayerData; toggleBottomSheet: () => void }) => (
-  <View style={styles.headerRightContainer}>
-     <View style={styles.headerItemContainer}>
-      <Image
-        source={require('../../assets/gem.png')}
-        style={styles.coinImage}
-      />
-      <AnimatedRollingNumbers
-        textColor="#08b7fc"
-        fontSize={18}
-        value={(playerData?.gems) || 0}
-      />
+const HeaderRight = React.memo(
+  ({ coins, gems, streak, toggleBottomSheet }: { coins?: any; gems?: any, streak: any; toggleBottomSheet: () => void }) => (
+    <View style={styles.headerRightContainer}>
+      <View style={styles.headerItemContainer}>
+        <Image
+          resizeMethod="resize"
+          source={require('../../assets/gem.png')}
+          style={styles.coinImage}
+        />
+        <AnimatedRollingNumbers textColor="#08b7fc" fontSize={18} value={gems || 0} />
+      </View>
+      <View style={styles.headerItemContainer}>
+        <Image
+          resizeMethod="resize"
+          source={require('../../assets/coin.png')}
+          style={styles.coinImage}
+        />
+        <AnimatedRollingNumbers textColor="#FFD700" fontSize={18} value={coins || 0} />
+      </View>
+      <View style={styles.headerItemContainer}>
+        <Image
+          resizeMethod="resize"
+          source={require('../../assets/streak.png')}
+          style={styles.streakImage}
+        />
+        <AnimatedRollingNumbers textColor="#ff9600" fontSize={18} value={streak || 0} />
+      </View>
+      <TouchableOpacity onPress={toggleBottomSheet}>
+        <Image
+          resizeMethod="resize"
+          source={require('../../assets/pfp.jpg')}
+          style={styles.profileImage}
+        />
+      </TouchableOpacity>
     </View>
-    <View style={styles.headerItemContainer}>
-      <Image
-        source={require('../../assets/coin.png')}
-        style={styles.coinImage}
-      />
-      <AnimatedRollingNumbers
-        textColor="#FFD700"
-        fontSize={18}
-        value={(playerData?.coins) || 0}
-      />
-    </View>
-    <View style={styles.headerItemContainer}>
-      <Image
-        source={require('../../assets/streak.png')}
-        style={styles.streakImage}
-      />
-      <AnimatedRollingNumbers
-        textColor="#ff9600"
-        fontSize={18}
-        value={(playerData?.streak) || 0}
-      />
-    </View>
-    <TouchableOpacity onPress={toggleBottomSheet}>
-      <Image
-        source={require('../../assets/pfp.jpg')}
-        style={styles.profileImage}
-      />
-    </TouchableOpacity>
-  </View>
-));
+  )
+);
 
 export default function TabLayout() {
-  const { playerData } = useContext(AppUserContext);
+  const {coins, streak, gems} = useCoinsAndStreakStore()
+  const {selectedClass} = usePlayerDataStore()
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
   const toggleBottomSheet = useCallback(() => {
     setIsBottomSheetOpen((prev) => !prev);
   }, []);
 
-  const selectedClass = classes.find((cls) => cls.id === playerData?.selectedClass);
+  const currentClass = classes.find((cls) => cls.id === selectedClass);
 
   return (
     <>
@@ -126,10 +116,9 @@ export default function TabLayout() {
         tabBar={(props) => <AnimatedTabBar {...props} />}
         screenOptions={{
           headerStyle: styles.headerStyle,
-          lazy: true,
-          headerLeft: () => <HeaderLeft selectedClass={selectedClass} />,
+          headerLeft: () => <HeaderLeft selectedClass={currentClass} />,
           headerRight: () => (
-            <HeaderRight playerData={playerData} toggleBottomSheet={toggleBottomSheet} />
+            <HeaderRight coins={coins} streak={streak} gems={gems} toggleBottomSheet={toggleBottomSheet} />
           ),
         }}>
         <Tabs.Screen
@@ -218,85 +207,87 @@ export default function TabLayout() {
   );
 }
 
-const AnimatedTabBar = React.memo(({ state: { index: activeIndex, routes }, navigation, descriptors }: AnimatedTabBarProps) => {
-  const { bottom } = useSafeAreaInsets();
-  const [layout, dispatch] = useReducer((state: any[], action: any) => [...state, action], []);
+const AnimatedTabBar = React.memo(
+  ({ state: { index: activeIndex, routes }, navigation, descriptors }: AnimatedTabBarProps) => {
+    const { bottom } = useSafeAreaInsets();
+    const [layout, dispatch] = useReducer((state: any[], action: any) => [...state, action], []);
 
-  const handleLayout = useCallback((event: LayoutChangeEvent, index: number) => {
-    const x = event.nativeEvent.layout.x;
-    dispatch({ index, x });
-  }, []);
+    const handleLayout = useCallback((event: LayoutChangeEvent, index: number) => {
+      const x = event.nativeEvent.layout.x;
+      dispatch({ index, x });
+    }, []);
 
-  return (
-    <View style={[styles.tabBarContainerWrapper, { paddingBottom: bottom + 10 }]}>
-      <View style={styles.tabBar}>
-        {routes.map((route, index) => {
-          const active = index === activeIndex;
-          const { options } = descriptors[route.key];
+    return (
+      <View style={[styles.tabBarContainerWrapper, { paddingBottom: bottom + 10 }]}>
+        <View style={styles.tabBar}>
+          {routes.map((route, index) => {
+            const active = index === activeIndex;
+            const { options } = descriptors[route.key];
 
-          return (
-            <TabBarComponent
-              key={route.key}
-              active={active}
-              options={options}
-              onLayout={(e) => handleLayout(e, index)}
-              onPress={() => navigation.navigate(route.name)}
-            />
-          );
-        })}
+            return (
+              <TabBarComponent
+                key={route.key}
+                active={active}
+                options={options}
+                onLayout={(e) => handleLayout(e, index)}
+                onPress={() => navigation.navigate(route.name)}
+              />
+            );
+          })}
+        </View>
       </View>
-    </View>
-  );
-});
+    );
+  }
+);
 
-const TabBarComponent = React.memo(({ active, options, onLayout, onPress }: TabBarComponentProps) => {
-  const lottieRef = useRef<LottieView>(null);
+const TabBarComponent = React.memo(
+  ({ active, options, onLayout, onPress }: TabBarComponentProps) => {
+    const lottieRef = useRef<LottieView>(null);
 
-  const backgroundAnimation = useAnimatedStyle(() => ({
-    width: withTiming(active ? 95 : 50, { duration: 250 }),
-    height: 45,
-    backgroundColor: active ? '#2A2A35' : 'transparent',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    borderRadius: 25,
-    paddingHorizontal: 10,
-  }));
+    const backgroundAnimation = useAnimatedStyle(() => ({
+      width: withTiming(active ? 95 : 50, { duration: 250 }),
+      height: 45,
+      backgroundColor: active ? '#2A2A35' : 'transparent',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      borderRadius: 25,
+      paddingHorizontal: 10,
+    }));
 
-  const textAnimation = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: withTiming(active ? 0 : 20, { duration: 250 }) },
-    ],
-    opacity: withTiming(active ? 1 : 0, { duration: 250 }),
-  }));
+    const textAnimation = useAnimatedStyle(() => ({
+      transform: [{ translateX: withTiming(active ? 0 : 20, { duration: 250 }) }],
+      opacity: withTiming(active ? 1 : 0, { duration: 250 }),
+    }));
 
-  const handlePress = useCallback(() => {
-    if (lottieRef.current && typeof lottieRef.current.play === 'function') {
-      lottieRef.current.play();
-    }
-    onPress();
-  }, [onPress]);
+    const handlePress = useCallback(() => {
+      if (lottieRef.current && typeof lottieRef.current.play === 'function') {
+        lottieRef.current.play();
+      }
+      onPress();
+    }, [onPress]);
 
-  return (
-    <TouchableOpacity onPress={handlePress} onLayout={onLayout} style={styles.tabItem}>
-      <Animated.View style={[styles.circleBackground, backgroundAnimation]}>
-        {options.tabBarIcon ? (
-          <View style={styles.lottieWrapper}>
-            {options.tabBarIcon({
-              focused: active,
-              ref: lottieRef,
-            })}
-          </View>
-        ) : (
-          <Text>?</Text>
-        )}
-        <Animated.Text style={[styles.tabText, textAnimation]}>
-          {options.title || options.tabBarLabel || 'Tab'}
-        </Animated.Text>
-      </Animated.View>
-    </TouchableOpacity>
-  );
-});
+    return (
+      <TouchableOpacity onPress={handlePress} onLayout={onLayout} style={styles.tabItem}>
+        <Animated.View style={[styles.circleBackground, backgroundAnimation]}>
+          {options.tabBarIcon ? (
+            <View style={styles.lottieWrapper}>
+              {options.tabBarIcon({
+                focused: active,
+                ref: lottieRef,
+              })}
+            </View>
+          ) : (
+            <Text>?</Text>
+          )}
+          <Animated.Text style={[styles.tabText, textAnimation]}>
+            {options.title || options.tabBarLabel || 'Tab'}
+          </Animated.Text>
+        </Animated.View>
+      </TouchableOpacity>
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   headerStyle: {

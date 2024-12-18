@@ -12,6 +12,9 @@ import { Button } from './Button';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import IconMat from 'react-native-vector-icons/MaterialCommunityIcons';
 import Title from './Title';
+import { usePlayerStore } from '~/contexts/playerDataStore';
+import { useShallow } from 'zustand/shallow';
+import { usePenaltyZoneStore } from '~/stores/mainStore';
 
 interface TaskInterface {
   title: string;
@@ -51,7 +54,9 @@ export const TaskCard = ({
   onDelete,
 }: TaskInterface) => {
   const isCompleted = status === 'completed';
-  const { playerData } = useContext(AppUserContext);
+  const { inPenaltyZone } = usePenaltyZoneStore(
+    useShallow((state) => ({ inPenaltyZone: state.inPenaltyZone }))
+  );
   const swipeableRef = useRef<Swipeable>(null);
 
   const [isLeftOpen, setIsLeftOpen] = useState(false); // Estado para rastrear se o lado esquerdo está aberto
@@ -292,7 +297,7 @@ export const TaskCard = ({
           className={`relative max-h-32 w-full bg-[--secondary] py-4 text-white ${
             isCompleted
               ? 'border-b-gray-400'
-              : playerData.inPenaltyZone
+              : inPenaltyZone
                 ? 'border-b-[#cb3d55]'
                 : 'border-b-[--accent]'
           } border-b-4`}>
@@ -316,7 +321,7 @@ export const TaskCard = ({
                   className={`text-lg ${
                     isCompleted
                       ? 'text-gray-400'
-                      : playerData.inPenaltyZone
+                      : inPenaltyZone
                         ? 'text-[#cb3d55]'
                         : 'text-[--accent]'
                   }`}>
