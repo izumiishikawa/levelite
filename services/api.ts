@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 const url = 'https://novel-duckling-unlikely.ngrok-free.app';
+import * as FileSystem from "expo-file-system";
+import { lookup as getMimeType } from "react-native-mime-types";
 
 export const consultPlayerStatus = async () => {
   const userToken = await AsyncStorage.getItem('userToken');
@@ -213,7 +215,6 @@ export const setGeneratedToday = async (userId: string) => {
 
     switch (response.status) {
       case 200:
-        console.log('User updated successfully:', response.data);
         return response.data;
       default:
         throw new Error(`Unexpected status code: ${response.status}`);
@@ -240,13 +241,155 @@ export const setClassGeneratedToday = async (userId: string) => {
 
     switch (response.status) {
       case 200:
-        console.log('User updated successfully:', response.data);
         return response.data;
       default:
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
     throw new Error('Failed to update generatedToday. Please try again later.');
+  }
+};
+
+export const searchUsers = async (query: string): Promise<any> => {
+  const userToken = await AsyncStorage.getItem('userToken');
+
+  try {
+    const response = await axios.get(`${url}/friendship/search`, {
+      params: { query },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
+      },
+    });
+
+    switch (response.status) {
+      case 200:
+        return response.data.users; // Retorna a lista de usuários
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    throw new Error('Failed to fetch users. Please try again later.');
+  }
+};
+
+export const sendFriendRequest = async (friendId: string): Promise<any> => {
+  const userToken = await AsyncStorage.getItem('userToken');
+
+  try {
+    const response = await axios.post(
+      `${url}/friendship/request`,
+      { friendId },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
+        },
+      }
+    );
+
+    switch (response.status) {
+      case 200:
+        return response.data; // Retorna a lista de usuários
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    throw new Error('Failed to fetch users. Please try again later.');
+  }
+};
+
+export const cancelFriendRequest = async (friendId: string): Promise<any> => {
+  const userToken = await AsyncStorage.getItem('userToken');
+
+  try {
+    const response = await axios.get(`${url}/friendship/request`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
+      },
+    });
+
+    switch (response.status) {
+      case 200:
+        return response.data; // Retorna a lista de usuários
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    throw new Error('Failed to fetch users. Please try again later.');
+  }
+};
+
+export const acceptFriendRequest = async (friendId: string): Promise<any> => {
+  const userToken = await AsyncStorage.getItem('userToken');
+
+  try {
+    const response = await axios.post(`${url}/friendship/accept`, {friendId}, {
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
+      },
+    });
+
+    switch (response.status) {
+      case 200:
+        return response.data; // Retorna a lista de usuários
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    throw new Error('Failed to fetch users. Please try again later.');
+  }
+};
+
+export const getFriendList = async (): Promise<any> => {
+  const userToken = await AsyncStorage.getItem('userToken');
+
+  try {
+    const response = await axios.get(`${url}/friendship/list`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
+      },
+    });
+
+    switch (response.status) {
+      case 200:
+        return response.data; // Retorna a lista de usuários
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    throw new Error('Failed to fetch users. Please try again later.');
+  }
+};
+
+export const getPlayersProfile = async (friendId: string): Promise<any> => {
+  const userToken = await AsyncStorage.getItem('userToken');
+
+  try {
+    const response = await axios.get(`${url}/friendship/user/${friendId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
+      },
+    });
+
+    switch (response.status) {
+      case 200:
+        return response.data; // Retorna a lista de usuários
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    throw new Error('Failed to fetch users. Please try again later.');
   }
 };
 
@@ -295,6 +438,40 @@ export const consultPenaltyTasks = async (userId: string) => {
         throw new Error(`Unexpected status code: ${response.status}`);
     }
   } catch (error) {
+    throw error;
+  }
+};
+
+export const updateProfilePicture = async (userId: string, fileUri: string): Promise<any> => {
+  const userToken = await AsyncStorage.getItem("userToken");
+
+  try {
+    // Preparar o arquivo para upload
+    const fileType = getMimeType(fileUri) || "image/jpeg"; // Default para "image/jpeg" se não identificado
+    const fileName = fileUri.split("/").pop() || "profile-pic.jpg";
+
+    const formData = new FormData();
+    formData.append("file", {
+      uri: fileUri,
+      type: fileType,
+      name: fileName,
+    } as any); // "as any" é necessário devido a tipos inconsistentes do FormData no React Native
+
+    const response = await axios.post(`${url}/user/profile-picture`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        Authorization: `Bearer ${userToken}`,
+      },
+    });
+
+    switch (response.status) {
+      case 200:
+        return response.data;
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    console.error("Erro ao atualizar a foto de perfil:", error);
     throw error;
   }
 };
@@ -431,6 +608,7 @@ export const getSkillBookTasks = async (bookId: string) => {
 
 export const generateSkillBookTasks = async (bookId: string) => {
   const userToken = await AsyncStorage.getItem('userToken');
+  
   try {
     const response = await axios.post(
       `${url}/skillbooks/generate-skillbook-tasks/${bookId}`,

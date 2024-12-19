@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { View, ActivityIndicator, Image, Animated, InteractionManager } from 'react-native';
+import { View, ActivityIndicator, Image, Animated, InteractionManager, Vibration } from 'react-native';
 import Text from '../Text';
 import { TaskCard } from '../TaskCard';
 import { AppUserContext } from '~/contexts/AppUserContext';
@@ -22,19 +22,26 @@ import LevelUpAlert from '../LevelUpAlert';
 import LottieView from 'lottie-react-native';
 import { useSnackBar } from '~/contexts/SnackBarContext';
 import IoIcon from 'react-native-vector-icons/Ionicons';
-import { useCoinsAndStreakStore, useLevelsAndExpStore, usePenaltyZoneStore, usePlayerDataStore } from '~/stores/mainStore';
+import {
+  useCoinsAndStreakStore,
+  useLevelsAndExpStore,
+  usePenaltyZoneStore,
+  usePlayerDataStore,
+} from '~/stores/mainStore';
 import { useShallow } from 'zustand/shallow';
 
 interface TaskWrapperProps {
   taskType: 'daily' | 'user' | 'class' | 'skillbook'; // Define os tipos de tarefa
   skillBookId?: string;
   refreshSignal?: number;
+  skillBookGeneratedToday?: boolean;
 }
 
 export const TaskWrapper: React.FC<TaskWrapperProps> = ({
   taskType,
   refreshSignal,
   skillBookId,
+  skillBookGeneratedToday,
 }) => {
   const { setCoins, setStreak } = useCoinsAndStreakStore(
     useShallow((state) => ({
@@ -42,7 +49,7 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
       setStreak: state.setStreak,
     }))
   );
-  
+
   const { setCurrentXP, setLevel, level, setXpForNextLevel } = useLevelsAndExpStore(
     useShallow((state) => ({
       setCurrentXP: state.setCurrentXP,
@@ -51,18 +58,19 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
       setXpForNextLevel: state.setXpForNextLevel,
     }))
   );
-  
-  const { id, generatedToday } = usePlayerDataStore(
+
+  const { id, generatedToday, updateTasksSignal, setUpdateSkillBookSignal } = usePlayerDataStore(
     useShallow((state) => ({
       id: state.id,
       generatedToday: state.generatedToday,
+      updateTasksSignal: state.updateTasksSignal,
+      setUpdateSkillBookSignal: state.setUpdateSkillBookSignal,
     }))
   );
-  
+
   const { inPenaltyZone } = usePenaltyZoneStore(
     useShallow((state) => ({ inPenaltyZone: state.inPenaltyZone }))
   );
-  
 
   const { showSnackBar } = useSnackBar();
   const [currentTasks, setCurrentTasks] = useState<any[]>([]);
@@ -99,19 +107,25 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
 
   const fetchTasks = async () => {
     try {
+      if (!id || generatedToday === null) {
+        console.warn('ID ou generatedToday não estão prontos.');
+        return;
+      }
+  
       let tasks = [];
-
+  
       if (taskType === 'daily') {
         if (inPenaltyZone) {
           tasks = await consultPenaltyTasks(id);
           tasks = tasks.filter((task: any) => task.type === 'penaltyTask');
         } else {
+          console.log(generatedToday)
           if (!generatedToday) {
             setIsLoading(true);
             await generateAiTasks(id);
             setIsLoading(false);
           }
-
+  
           tasks = await consultPendingTasks(id);
           tasks = tasks.filter((task: any) => task.type === 'dailyQuests');
         }
@@ -122,23 +136,24 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
         tasks = await consultClassTasks(id);
         tasks = tasks.filter((task: any) => task.type === 'classQuests');
       } else if (taskType === 'skillbook' && skillBookId) {
-        const skillBookTasks = await getSkillBookTasks(skillBookId);
-
-        if (!skillBookTasks || skillBookTasks.length === 0) {
+        if (!skillBookGeneratedToday) {
           setIsLoading(true);
-          await generateSkillBookTasks(skillBookId);
-          tasks = await getSkillBookTasks(skillBookId);
+          if (currentTasks.length === 0) {
+            await generateSkillBookTasks(skillBookId);
+          }
+          
+          setUpdateSkillBookSignal(Math.random())
           setIsLoading(false);
-        } else {
-          tasks = skillBookTasks;
         }
+  
+        tasks = await getSkillBookTasks(skillBookId);
       }
-
+  
       setCurrentTasks(tasks);
-
+  
       const initialAnimations = tasks.map(() => new Animated.Value(-500));
       setAnimations(initialAnimations);
-
+  
       initialAnimations.forEach((animation: Animated.Value | Animated.ValueXY, index: number) => {
         Animated.timing(animation, {
           toValue: 0,
@@ -153,56 +168,56 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
       setIsLoading(false);
     }
   };
-
+  
   useEffect(() => {
-    fetchTasks();
-  }, [taskType]);
-
+    if (!isLoading) {
+      fetchTasks();
+    }
+  }, [taskType, id, generatedToday, updateTasksSignal, refreshSignal]);
+  
   const completeCurrentTask = (taskId: string) => {
     // Colocar lógica que não precisa bloquear a thread principal em um handler
     InteractionManager.runAfterInteractions(async () => {
       try {
         const data = await completeTask(taskId, id);
-  
+
         // Atualiza estados com base na resposta da API
         if (data.allTasksCompleted) {
           setAllTasksCompleted(true);
         }
-  
+
         if (data.leveledUp === true) {
           setLeveledUp(true);
         }
 
-        setLevel(data.user.level)
-        setCurrentXP(data.user.currentXP)
-        setXpForNextLevel(data.user.xpForNextLevel)
-        setStreak(data.user.streak)
+        setLevel(data.user.level);
+        setCurrentXP(data.user.currentXP);
+        setXpForNextLevel(data.user.xpForNextLevel);
+        setStreak(data.user.streak);
       } catch (err) {
-        showSnackBar('Erro ao completar a tarefa. Tente novamente.');
+        showSnackBar('An error have ocurred.');
       } finally {
         setIsLoading(false);
       }
     });
   };
 
-  
-const restoreCurrentTask = (taskId: string) => {
-  InteractionManager.runAfterInteractions(async () => {
-    try {
-      const data = await restoreTask(taskId);
+  const restoreCurrentTask = (taskId: string) => {
+    InteractionManager.runAfterInteractions(async () => {
+      try {
+        const data = await restoreTask(taskId);
 
-    
-      setCoins(data.user.coins)
-      setCurrentXP(data.user.currentXP)
-      setLevel(data.user.level)
-      setXpForNextLevel(data.user.xpForNextLevel)
-      setStreak(data.user.streak)
-    } catch (err) {
-    } finally {
-      setIsLoading(false);
-    }
-  });
-};
+        setCoins(data.user.coins);
+        setCurrentXP(data.user.currentXP);
+        setLevel(data.user.level);
+        setXpForNextLevel(data.user.xpForNextLevel);
+        setStreak(data.user.streak);
+      } catch (err) {
+      } finally {
+        setIsLoading(false);
+      }
+    });
+  };
 
   const handleTaskCompletion = (taskId: string, xpReward: number, coins: number) => {
     setCurrentTasks((prevTasks) =>
@@ -212,13 +227,17 @@ const restoreCurrentTask = (taskId: string) => {
     showSnackBar(
       <View className="flex flex-row items-center gap-4">
         <View className="flex flex-row items-center gap-1">
-          <IoIcon name="sparkles" className="mr-1" size={17} color='#fff' />
+          <IoIcon name="sparkles" className="mr-1" size={17} color="#fff" />
           <Text className="text-white" black>
             + {xpReward}
           </Text>
         </View>
         <View className="flex flex-row items-center gap-1">
-          <Image           resizeMethod='resize' source={require('../../assets/coin.png')} className="h-5 w-5" />
+          <Image
+            resizeMethod="resize"
+            source={require('../../assets/coin.png')}
+            className="h-5 w-5"
+          />
           <Text className="text-white" black>
             + {coins || 0}
           </Text>
@@ -268,11 +287,7 @@ const restoreCurrentTask = (taskId: string) => {
   return (
     <>
       {allTasksCompleted && <AllTasksCompleted onComplete={() => setAllTasksCompleted(false)} />}
-      <LevelUpAlert
-        visible={leveledUp}
-        level={level}
-        onClose={() => setLeveledUp(false)}
-      />
+      <LevelUpAlert visible={leveledUp} level={level} onClose={() => setLeveledUp(false)} />
       <View className="mb-20 mt-10">
         <View className="relative w-full flex-col items-center justify-center">
           <View className="absolute top-0 z-[-2] h-full w-[510%] rotate-[12deg] bg-[--secondary]" />
@@ -281,7 +296,7 @@ const restoreCurrentTask = (taskId: string) => {
           <View className="z-10 flex w-full flex-col items-center py-6 text-white">
             <View className="flex w-full flex-col items-center gap-2 py-6 text-center">
               <Image
-                        resizeMethod='resize'
+                resizeMethod="resize"
                 className="absolute -top-12 right-5"
                 source={getTaskImageSource()}
                 style={{
@@ -317,7 +332,9 @@ const restoreCurrentTask = (taskId: string) => {
                           attribute={taskInfo.attribute}
                           intensityLevel={taskInfo.intensityLevel}
                           status={taskInfo.status}
-                          onComplete={() => handleTaskCompletion(taskInfo._id, taskInfo.xpReward, taskInfo.coins)}
+                          onComplete={() =>
+                            handleTaskCompletion(taskInfo._id, taskInfo.xpReward, taskInfo.coins)
+                          }
                           onRestore={() => handleTaskRestoring(taskInfo._id)}
                           onDelete={() => handleTaskRemoval(taskInfo._id)}
                           isDefault={!inPenaltyZone}

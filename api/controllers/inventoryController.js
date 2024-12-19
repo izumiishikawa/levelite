@@ -128,8 +128,6 @@ router.post('/:userId/use', async (req, res) => {
     await inventory.save();
     await user.save();
 
-    console.log(effectResult)
-
     res.status(200).json(user);
   } catch (error) {
     console.error('Erro ao usar item:', error.message);

@@ -34,10 +34,11 @@ export const GeneralLevel: React.FC = () => {
         <View className="text-md absolute -bottom-2 left-10 z-20 flex h-fit flex-row items-center text-center">
           <Icon name="sparkles" style={{ marginRight: 4 }} size={17} color={barColor} />
           <Text style={{ color: barColor }} black>
-            EXP
+            EXP {" "}
           </Text>
-          <Text className="text-[--accent]" black>
+          <Text  style={{color: barColor}} black>
             [
+              {" "}
             <AnimatedRollingNumbers
               className="pt-[3px]"
               fontSize={14}

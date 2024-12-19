@@ -35,10 +35,10 @@ export const SkillBook: React.FC<SkillBookProps> = ({
 }) => {
   return (
     <TouchableOpacity onPress={onOpen}>
-      <View className="w-30 z-20 flex h-56 max-h-56 min-w-36 max-w-36 flex-col items-center justify-center gap-2 rounded-lg bg-[#4343A9] px-2 py-4 shadow-lg">
-        <Text className="text-center text-md font-bold text-white">{title}</Text>
+      <View className="w-30 z-20 flex h-56 max-h-56 min-w-36 max-w-36 flex-col items-center justify-center gap-2 rounded-lg bg-[--accent] px-2 py-4 shadow-lg">
+        <Text className="text-center text-md text-white" black>{title}</Text>
       </View>
-      <View className="absolute left-6 -z-10 h-52 mt-2 w-36 bg-[#282865] rounded-lg" />
+      <View className="absolute left-6 -z-10 h-52 mt-2 w-36 bg-[#6344ab] rounded-lg" />
       <View className="absolute left-2 -z-10 h-48 mt-4 w-36 bg-white drop-shadow-lg rounded-lg" />
     </TouchableOpacity>
   );

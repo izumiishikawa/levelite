@@ -1,23 +1,30 @@
-import React, { useEffect, useState } from 'react';
-import { View, ScrollView, ActivityIndicator } from 'react-native';
-import Text from '~/components/Text';
-import { useLocalSearchParams } from 'expo-router';
-import { getSkillBookTasks, generateSkillBookTasks } from '~/services/api';
-import { TaskCard } from '../components/TaskCard';
+import React from 'react';
+import { View, ScrollView } from 'react-native';
 import { GeneralLevel } from '~/components/GeneralLevel';
 import { Container } from '~/components/Container';
 import { TaskWrapper } from '~/components/DailyTasks/TaskWrapper';
+import Title from '~/components/Title';
+import useParams from '~/hooks/useParams';
+import { useLocalSearchParams } from 'expo-router';
 
 const SkillBookTasks: React.FC = () => {
-  const { skillBookId, title } = useLocalSearchParams();
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { title, skillBookId } = useLocalSearchParams();
+  const { generatedToday } = useParams<'SkillBookTasks'>();
 
   return (
-    <ScrollView className="h-full w-full bg-[--background] pt-20" contentContainerStyle={{ flexGrow: 1 }}>
+    <ScrollView
+      className="h-full w-full bg-[--background] pt-20"
+      contentContainerStyle={{ flexGrow: 1 }}>
       <Container>
+        <View className="mx-auto mb-20 w-[80%]">
+          <Title text={title as string} />
+        </View>
         <GeneralLevel />
-        <TaskWrapper skillBookId={skillBookId as string} taskType="skillbook" />
+        <TaskWrapper
+          skillBookId={skillBookId as string}
+          skillBookGeneratedToday={generatedToday}
+          taskType="skillbook"
+        />
       </Container>
     </ScrollView>
   );

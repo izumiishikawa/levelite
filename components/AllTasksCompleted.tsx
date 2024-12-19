@@ -55,12 +55,16 @@ export default function AllTasksCompleted({ onComplete }: { onComplete: () => vo
     useShallow((state) => ({ id: state.id }))
   );
   
-  const { streak } = useCoinsAndStreakStore(
-    useShallow((state) => ({ streak: state.streak }))
+  const { streak, coins, setCoins } = useCoinsAndStreakStore(
+    useShallow((state) => ({ streak: state.streak, coins: state.coins, setCoins: state.setCoins }))
   );
   
   const [currentStep, setCurrentStep] = useState(0);
   const [showCoinSplash, setShowCoinSplash] = useState(false);
+
+  useEffect(() => {
+    setCoins(coins + 100)
+  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -111,9 +115,9 @@ export default function AllTasksCompleted({ onComplete }: { onComplete: () => vo
           </Text>
           {/* <StreakCalendar streak={playerData?.streak || 0} /> */}
           <Text style={styles.contentTextStreak}>
-            {(streak + 1) === 1
+            {(streak) === 1
               ? 'You started a new streak! Keep completing your daily tasks to increase your streak.'
-              : `Congratulations! Your streak is now ${streak + 1} consecutive days.`}
+              : `Congratulations! Your streak is now ${streak} consecutive days.`}
           </Text>
         </View>
       ),

@@ -1,10 +1,15 @@
-const mongoose = require("mongoose");
+const { v4: uuidv4 } = require('uuid');
+const mongoose = require('mongoose');
 
 const usersSchema = new mongoose.Schema({
   username: {
     type: String,
     required: true,
     unique: true,
+  },
+  icon: {
+    type: String,
+    default: "default.jpg"
   },
   email: {
     type: String,
@@ -23,12 +28,12 @@ const usersSchema = new mongoose.Schema({
   inPenaltyZone: {
     type: Boolean,
     required: true,
-    default: false
+    default: false,
   },
 
   totalExp: {
     type: Number,
-    default: 0
+    default: 0,
   },
 
   allDone: {
@@ -120,6 +125,36 @@ const usersSchema = new mongoose.Schema({
   lastLogin: {
     type: Date,
   },
+
+  friendId: {
+    type: String,
+    default: () => uuidv4(),
+  },
+
+  friends: {
+    type: [
+      {
+        friendId: { type: String, ref: 'User' },
+      }
+    ],  
+    default: []
+  },
+
+  friendRequests: {
+    type: [
+      {
+        from: { type: String, ref: 'User', required: true, unique: true },
+        name: { type: String },
+        icon: { type: String },
+        status: {
+          type: String,
+          enum: ['pending', 'accepted', 'rejected'],
+          default: 'pending',
+        },
+      },
+    ],
+    default: [],
+  },
 });
 
-module.exports = mongoose.model("User", usersSchema);
+module.exports = mongoose.model('User', usersSchema);

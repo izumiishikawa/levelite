@@ -79,6 +79,9 @@ router.post('/generate-skillbook-tasks/:bookId', async (req, res) => {
       { new: true }
     );
 
+    console.log(skillBook)
+    console.log(bookId)
+
     if (!skillBook) {
       return res.status(400).json({ error: 'Tasks for this Skill Book already generated today or Skill Book not found' });
     }
@@ -111,6 +114,8 @@ router.post('/generate-skillbook-tasks/:bookId', async (req, res) => {
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
     });
+
+    console.log(completion)
 
     const tasks = JSON.parse(completion.choices[0].message.content);
 

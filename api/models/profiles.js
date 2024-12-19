@@ -25,7 +25,7 @@ const profilesSchema = new mongoose.Schema({
   },
   exerciseFrequency: {
     type: String,
-    enum: ["sedentary", "1-2", "3-4", "daily"],
+    enum: ["sedentary", "1-2", "3-5", "daily"],
   },
   exerciseIntensity: {
     type: String,

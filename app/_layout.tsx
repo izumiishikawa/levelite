@@ -15,6 +15,7 @@ import { consultPlayerStatus } from '~/services/api';
 import {
   useAttributesStore,
   useCoinsAndStreakStore,
+  useFriendshipStore,
   useHealthAndManaStore,
   useLevelsAndExpStore,
   usePenaltyZoneStore,
@@ -50,6 +51,7 @@ export default function RootLayout() {
   useInitialAndroidBarSync();
   const { colorScheme } = useColorScheme();
   const [haveToken, setHaveToken] = useState<boolean>(true);
+  const [onboarded, setOnboarded] = useState<boolean>();
   const [showHimari, setShowHimari] = useState(false);
 
   const initializePlayerData = async () => {
@@ -59,12 +61,15 @@ export default function RootLayout() {
       if (userToken) {
         setHaveToken(true);
         const storedPlayerData = await consultPlayerStatus();
+        setOnboarded(storedPlayerData.onboarded);
 
         if (storedPlayerData) {
           const {
             _id,
+            icon,
             onboarded,
             generatedToday,
+            friendRequests,
             weight,
             height,
             username,
@@ -80,6 +85,7 @@ export default function RootLayout() {
             inPenaltyZone,
             attributes,
             health,
+            friends,
             maxHealth,
             mana,
             maxMana,
@@ -93,7 +99,12 @@ export default function RootLayout() {
           playerStore.setUsername(username);
           playerStore.setWeight(weight);
           playerStore.setHeight(height);
-          playerStore.setOnboarded(onboarded)
+          playerStore.setOnboarded(onboarded);
+          playerStore.setIcon(icon);
+
+          const friendStore = useFriendshipStore.getState();
+          friendStore.setFriendRequests(friendRequests);
+          friendStore.setFriends(friends);
 
           const coinsAndStreakStore = useCoinsAndStreakStore.getState();
           coinsAndStreakStore.setCoins(coins);
@@ -132,14 +143,7 @@ export default function RootLayout() {
   };
 
   const checkFirstLaunch = async () => {
-    const hasLaunched = await AsyncStorage.getItem('hasLaunched');
-    if (!hasLaunched) {
-      await AsyncStorage.setItem('hasLaunched', 'true');
-      const playerStore = usePlayerDataStore.getState();
-      playerStore.setUsername('');
-    } else {
-      initializePlayerData();
-    }
+    initializePlayerData();
   };
 
   useEffect(() => {
@@ -150,6 +154,7 @@ export default function RootLayout() {
     try {
       const playerStore = usePlayerDataStore.getState();
       playerStore.setOnboarded(true);
+      setOnboarded(true);
       setShowHimari(true);
     } catch (error) {
       console.error('Erro ao finalizar o onboarding:', error);
@@ -190,9 +195,8 @@ export default function RootLayout() {
     return <AuthScreen onComplete={() => initializePlayerData()} />;
   }
 
-  const playerStore = usePlayerDataStore.getState();
-  if (!playerStore.onboarded) {
-    return <OnboardingScreens onComplete={handleOnboardingComplete} />;
+  if (onboarded === false) {
+    return <OnboardingScreens onComplete={() => handleOnboardingComplete()} />;
   }
 
   return (
@@ -215,6 +219,18 @@ export default function RootLayout() {
                 <Stack.Screen
                   name="profile_item"
                   options={{ presentation: 'transparentModal', animation: 'fade' }}
+                />
+                <Stack.Screen
+                  name="create_skillbook"
+                  options={{ presentation: 'transparentModal', animation: 'fade_from_bottom' }}
+                />
+                <Stack.Screen
+                  name="add_friend"
+                  options={{ presentation: 'transparentModal', animation: 'ios' }}
+                />
+                <Stack.Screen
+                  name="player_profile"
+                  options={{ presentation: 'transparentModal', animation: 'ios' }}
                 />
               </Stack>
               {showHimari && <HimariScreen onNext={handleHimariNext} />}

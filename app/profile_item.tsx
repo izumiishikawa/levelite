@@ -64,7 +64,6 @@ const ItemDetails: React.FC = () => {
     
         // Faz a chamada da API para usar o item
         const result = await useInventoryItem(playerId as string, itemId as string);
-        console.log(effect)
     
         // Atualiza o estado com base no efeito do item
         switch (effect) {

@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, Image, Pressable, Alert } from 'react-native';
+import { View, Image, Pressable, Alert, Vibration } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Text from '~/components/Text';
 import { buyShopItem } from '~/services/api';
@@ -11,10 +11,12 @@ import { useShallow } from 'zustand/shallow';
 
 const ShopItemPage: React.FC = () => {
   const { id } = usePlayerDataStore(useShallow((state) => ({ id: state.id })));
-  const { coins, setCoins } = useCoinsAndStreakStore(useShallow((state) => ({
-    coins: state.coins,
-    setCoins: state.setCoins,
-  })));
+  const { coins, setCoins } = useCoinsAndStreakStore(
+    useShallow((state) => ({
+      coins: state.coins,
+      setCoins: state.setCoins,
+    }))
+  );
   const { showSnackBar } = useSnackBar();
   const { itemId, name, description, icon, buyPrice } = useLocalSearchParams();
   const router = useRouter();
@@ -35,6 +37,7 @@ const ShopItemPage: React.FC = () => {
   const handleBuyItem = useCallback(() => {
     InteractionManager.runAfterInteractions(async () => {
       try {
+        const data = await buyShopItem(id, itemId as string);
         showSnackBar(
           <View className="flex flex-row items-center gap-2">
             <Image
@@ -51,15 +54,29 @@ const ShopItemPage: React.FC = () => {
         );
 
         playSound();
+        Vibration.vibrate();
 
         router.back();
-
-        const data = await buyShopItem(id, itemId as string);
         const value = coins - data.item.buyPrice;
 
         setCoins(value);
       } catch (error) {
-        Alert.alert('Erro', 'Não foi possível comprar o item.');
+        showSnackBar(
+          <View className="flex flex-row items-center gap-2">
+            <Image
+              resizeMethod="resize"
+              style={{ width: 25, height: 25 }}
+              source={{
+                uri: `https://novel-duckling-unlikely.ngrok-free.app/files/${icon}`,
+              }}
+            />
+            <Text className="text-white" black>
+              You don't have enougth coins.
+            </Text>
+          </View>
+        );
+
+        router.back();
       }
     });
   }, [id, itemId, coins, name, icon, playSound, setCoins, showSnackBar, router]);

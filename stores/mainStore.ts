@@ -1,43 +1,54 @@
 import { create } from 'zustand';
 
 interface PlayerDataStore {
-    id: string;
-    username: string;
-    generatedToday: boolean;
-    selectedClass: string;
-    profileUpdateSignal: number;
-    height: number;
-    weight: number;
-    onboarded: boolean;
-    setOnboarded: (onboarded: boolean) => void;
-    setId: (id: string) => void;
-    setProfileUpdateSignal: (profileUpdateSignal: number) => void;
-    setSelectedClass: (selectedClass: string) => void;
-    setGeneratedToday: (generatedToday: boolean) => void;
-    setUsername: (username: string) => void;
-    setHeight: (height: number) => void;
-    setWeight: (weight: number) => void;
-  }
-  
-  export const usePlayerDataStore = create<PlayerDataStore>((set) => ({
-    id: '',
-    username: '',
-    generatedToday: false,
-    selectedClass: "",
-    profileUpdateSignal: 0,
-    height: 0,
-    weight: 0,
-    onboarded: false,
-    setOnboarded: (onboarded) => set({onboarded}),
-    setId: (id) => set({ id }),
-    setProfileUpdateSignal: (profileUpdateSignal) => set({ profileUpdateSignal }),
-    setGeneratedToday: (generatedToday) => set({ generatedToday }),
-    setSelectedClass: (selectedClass) => set({ selectedClass }),
-    setUsername: (username) => set({ username }),
-    setHeight: (height) => set({ height }),
-    setWeight: (weight) => set({ weight })
-  }));
-  
+  id: string;
+  icon: string;
+  username: string;
+  generatedToday: boolean | null;
+  selectedClass: string;
+  profileUpdateSignal: number;
+  height: number;
+  weight: number;
+  onboarded: boolean;
+  updateTasksSignal: number;
+  setUpdateTaskSignal: (updateTasksSignal: number) => void;
+  updateSkillBookSignal: number;
+  setUpdateSkillBookSignal: (updateTasksSignal: number) => void;
+  setOnboarded: (onboarded: boolean) => void;
+  setIcon: (icon: string) => void;
+  setId: (id: string) => void;
+  setProfileUpdateSignal: (profileUpdateSignal: number) => void;
+  setSelectedClass: (selectedClass: string) => void;
+  setGeneratedToday: (generatedToday: boolean) => void;
+  setUsername: (username: string) => void;
+  setHeight: (height: number) => void;
+  setWeight: (weight: number) => void;
+}
+
+export const usePlayerDataStore = create<PlayerDataStore>((set) => ({
+  id: '',
+  icon: '',
+  username: '',
+  generatedToday: null,
+  selectedClass: '',
+  profileUpdateSignal: 0,
+  height: 0,
+  weight: 0,
+  onboarded: false,
+  updateTasksSignal: 0,
+  setUpdateTaskSignal: (updateTasksSignal) => set({ updateTasksSignal }),
+  updateSkillBookSignal: 0,
+  setUpdateSkillBookSignal: (updateSkillBookSignal) => set({ updateSkillBookSignal }),
+  setOnboarded: (onboarded) => set({ onboarded }),
+  setIcon: (icon) => set({ icon }),
+  setId: (id) => set({ id }),
+  setProfileUpdateSignal: (profileUpdateSignal) => set({ profileUpdateSignal }),
+  setGeneratedToday: (generatedToday) => set({ generatedToday }),
+  setSelectedClass: (selectedClass) => set({ selectedClass }),
+  setUsername: (username) => set({ username }),
+  setHeight: (height) => set({ height }),
+  setWeight: (weight) => set({ weight }),
+}));
 
 // Store for Coins and Streak Management
 interface CoinsAndStreakStore {
@@ -168,4 +179,56 @@ export const useMainGoalStore = create<MainGoalStore>((set) => ({
     set({ cognitiveChallengePreference: preference }),
   setSelfDisciplineLevel: (level) => set({ selfDisciplineLevel: level }),
   setStudyFrequency: (frequency) => set({ studyFrequency: frequency }),
+}));
+
+interface FriendshipStore {
+  friends: string[]; // Lista de IDs ou nomes dos amigos
+  friendRequests: {
+    icon: any;
+    name: string;
+    from: string;
+    status: 'pending' | 'accepted' | 'rejected';
+  }[]; // Solicitações de amizade
+  setFriends: (friends: string[]) => void; // Definir lista de amigos
+  addFriend: (friendId: string) => void; // Adicionar um amigo à lista
+  removeFriend: (friendId: string) => void; // Remover um amigo da lista
+  setFriendRequests: (
+    requests: { from: string; status: 'pending' | 'accepted' | 'rejected' }[]
+  ) => void; // Definir solicitações
+  addFriendRequest: (request: {
+    from: string;
+    status: 'pending' | 'accepted' | 'rejected';
+  }) => void; // Adicionar solicitação
+  updateFriendRequest: (from: string, status: 'accepted' | 'rejected') => void; // Atualizar status de uma solicitação
+  clearFriendRequests: () => void; // Limpar todas as solicitações
+}
+
+export const useFriendshipStore = create<FriendshipStore>((set) => ({
+  friends: [],
+  friendRequests: [],
+
+  setFriends: (friends) => set({ friends }),
+
+  addFriend: (friendId) => set((state) => ({ friends: [...state.friends, friendId] })),
+
+  removeFriend: (friendId) =>
+    set((state) => ({
+      friends: state.friends.filter((id) => id !== friendId),
+    })),
+
+  setFriendRequests: (requests) => set({ friendRequests: requests }),
+
+  addFriendRequest: (request) =>
+    set((state) => ({
+      friendRequests: [...state.friendRequests, request],
+    })),
+
+  updateFriendRequest: (from, status) =>
+    set((state) => ({
+      friendRequests: state.friendRequests.map((req) =>
+        req.from === from ? { ...req, status } : req
+      ),
+    })),
+
+  clearFriendRequests: () => set({ friendRequests: [] }),
 }));

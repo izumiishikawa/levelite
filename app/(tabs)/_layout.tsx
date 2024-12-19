@@ -10,6 +10,7 @@ import { classes } from '~/utils/classes';
 import AnimatedRollingNumbers from '~/components/AnimatedRolling';
 import { AppUserContext } from '~/contexts/AppUserContext';
 import { useCoinsAndStreakStore, usePlayerDataStore } from '~/stores/mainStore';
+import { useShallow } from 'zustand/shallow';
 
 interface Class {
   id: string;
@@ -62,7 +63,7 @@ const HeaderLeft = React.memo(({ selectedClass }: { selectedClass?: Class }) => 
 ));
 
 const HeaderRight = React.memo(
-  ({ coins, gems, streak, toggleBottomSheet }: { coins?: any; gems?: any, streak: any; toggleBottomSheet: () => void }) => (
+  ({ icon, coins, gems, streak, toggleBottomSheet }: { icon?: string, coins?: any; gems?: any, streak: any; toggleBottomSheet: () => void }) => (
     <View style={styles.headerRightContainer}>
       <View style={styles.headerItemContainer}>
         <Image
@@ -91,7 +92,9 @@ const HeaderRight = React.memo(
       <TouchableOpacity onPress={toggleBottomSheet}>
         <Image
           resizeMethod="resize"
-          source={require('../../assets/pfp.jpg')}
+          source={{
+            uri: `https://novel-duckling-unlikely.ngrok-free.app/files/${icon}`,
+          }}
           style={styles.profileImage}
         />
       </TouchableOpacity>
@@ -100,8 +103,11 @@ const HeaderRight = React.memo(
 );
 
 export default function TabLayout() {
+  const {icon, selectedClass} = usePlayerDataStore(useShallow((state) => ({
+    icon: state.icon,
+    selectedClass: state.selectedClass
+  })))
   const {coins, streak, gems} = useCoinsAndStreakStore()
-  const {selectedClass} = usePlayerDataStore()
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
   const toggleBottomSheet = useCallback(() => {
@@ -118,7 +124,7 @@ export default function TabLayout() {
           headerStyle: styles.headerStyle,
           headerLeft: () => <HeaderLeft selectedClass={currentClass} />,
           headerRight: () => (
-            <HeaderRight coins={coins} streak={streak} gems={gems} toggleBottomSheet={toggleBottomSheet} />
+            <HeaderRight icon={icon} coins={coins} streak={streak} gems={gems} toggleBottomSheet={toggleBottomSheet} />
           ),
         }}>
         <Tabs.Screen

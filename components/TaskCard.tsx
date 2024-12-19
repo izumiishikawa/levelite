@@ -1,5 +1,5 @@
 import React, { useContext, useRef, useState } from 'react';
-import { Modal, StyleSheet, View } from 'react-native';
+import { Modal, StyleSheet, Vibration, View } from 'react-native';
 import AttributeCard from './AttributeCard';
 import { IntensityLevelTag } from './IntensityLevelTag';
 import Text from './Text';
@@ -185,8 +185,12 @@ export const TaskCard = ({
     }
 
     if (status === 'completed') {
+      Vibration.vibrate();
+
       onRestore();
     } else if (status === 'pending') {
+      Vibration.vibrate();
+
       onComplete();
     }
   };
@@ -256,7 +260,9 @@ export const TaskCard = ({
               <Text bold className="text-gray-400">
                 Reward
               </Text>
-              <Text black className="text-[--accent] text-2xl">{xpReward} EXP POINTS</Text>
+              <Text black className="text-2xl text-[--accent]">
+                {xpReward} EXP POINTS
+              </Text>
             </View>
           </View>
         </View>

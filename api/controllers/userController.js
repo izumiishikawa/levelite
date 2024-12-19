@@ -5,6 +5,8 @@ const Task = require('../models/tasks');
 const OpenAI = require('openai');
 const secret = require('../data/secret.json');
 const authMiddleware = require('../middlewares/auth');
+const multer = require('multer');
+const multerConfig = require('../config/multer');
 const openai = new OpenAI({
   apiKey: secret.apiKey,
 });
@@ -71,6 +73,38 @@ router.get('/profile', async (req, res) => {
     return res.status(500).send({ error: 'Failed to retrieve profile' });
   }
 });
+
+router.post(
+  "/profile-picture",
+  multer(multerConfig).single("file"),
+  async (req, res) => {
+    try {
+      const userId = req.userId; // ID do usuário autenticado
+
+      if (!userId) {
+        return res.status(401).send({ error: "Usuário não autenticado." });
+      }
+
+      const { filename: key } = req.file; // Nome do arquivo salvo
+
+      // Atualizar o campo "profileIcon" do usuário
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { icon: key }, // Atualiza o ícone de perfil no banco de dados
+        { new: true } // Retorna o documento atualizado
+      );
+
+      if (!updatedUser) {
+        return res.status(404).send({ error: "Usuário não encontrado." });
+      }
+
+      return res.status(200).send(key);
+    } catch (error) {
+      console.error("Erro ao atualizar ícone de perfil:", error);
+      return res.status(500).send({ error: "Erro interno ao atualizar o ícone de perfil." });
+    }
+  }
+);
 
 router.put('/distribute-points', async (req, res) => {
   const { aura, vitality, focus } = req.body;
