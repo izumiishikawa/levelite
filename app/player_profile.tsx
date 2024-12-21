@@ -53,7 +53,9 @@ const PlayerProfile: React.FC = () => {
         <Image
           resizeMethod="resize"
           resizeMode="cover"
-          source={require('../assets/purplebanner.jpg')}
+          source={{
+            uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${user.banner}`,
+          }}
           style={styles.bannerImage}
         />
 
@@ -61,7 +63,7 @@ const PlayerProfile: React.FC = () => {
           <Image
             resizeMethod="resize"
             source={{
-              uri: `https://novel-duckling-unlikely.ngrok-free.app/files/${user.icon}`,
+              uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${user.icon}`,
             }}
             style={styles.profileImage}
           />

@@ -190,7 +190,7 @@ const ProfileBottomSheet: React.FC<ProfileBottomSheetProps> = ({ isOpen, onClose
             <Image
               resizeMethod="resize"
               source={{
-                uri: `https://novel-duckling-unlikely.ngrok-free.app/files/${icon}`,
+                uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${icon}`,
               }}
               style={styles.profileImage}
             />

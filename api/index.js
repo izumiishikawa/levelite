@@ -120,10 +120,10 @@ cron.schedule('59 23 * * *', async () => {
 
         // Cria tarefas de penalidade fixas
         const penaltyTasks = [
-          { title: '100 flexões', attribute: 'vitality', intensityLevel: 'high', xpReward: 50 },
-          { title: '100 abdominais', attribute: 'vitality', intensityLevel: 'high', xpReward: 50 },
-          { title: '100 agachamentos', attribute: 'vitality', intensityLevel: 'high', xpReward: 50 },
-          { title: '5 km de corrida', attribute: 'vitality', intensityLevel: 'high', xpReward: 100 },
+          { title: '100 push-ups', attribute: 'vitality', intensityLevel: 'high', xpReward: 10 },
+          { title: '100 sit-ups', attribute: 'vitality', intensityLevel: 'high', xpReward: 10 },
+          { title: '100 squats', attribute: 'vitality', intensityLevel: 'high', xpReward: 10 },
+          { title: '5 km run', attribute: 'vitality', intensityLevel: 'high', xpReward: 10 },
         ];
 
         const savedTasks = [];

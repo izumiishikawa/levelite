@@ -308,7 +308,7 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
               {isLoading && (
                 <View className="mt-20 flex w-full flex-col items-center">
                   <Text className="mb-5 text-white" bold>
-                    Gerando Tarefas Diárias..
+                    Generating Daily Tasks..
                   </Text>
                   <LottieView
                     source={require('../../assets/loading4.json')} // Substitua pelo arquivo JSON da animação

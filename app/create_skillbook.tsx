@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import Text from '~/components/Text';
 import Title from '~/components/Title';
 import { useSnackBar } from '~/contexts/SnackBarContext';
@@ -93,7 +93,8 @@ const CreateSkillBook: React.FC = () => {
   };
 
   return (
-    <View className="flex-1 items-center bg-[--background] p-6">
+    <ScrollView>
+  <View className="flex-1 items-center bg-[--background] p-6">
       <View className="mb-5 mt-20 w-[80%]">
         <Title text="Create SkillBook" />
       </View>
@@ -149,7 +150,7 @@ const CreateSkillBook: React.FC = () => {
         <View className="absolute bottom-[-6px] left-[-40px] h-44 w-14 rotate-[10deg] bg-[--background]" />
       </View>
 
-      <View className="mb-4 mt-6 w-full flex-row justify-between gap-2">
+      <View className="mb-4 mt-6 w-full flex-row flex-wrap justify-between gap-2">
         {['low', 'medium', 'high'].map((difficulty) => (
           <View
             key={difficulty}
@@ -169,7 +170,7 @@ const CreateSkillBook: React.FC = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                width: 110,
+                width: "100%",
               }}>
               {/* Renderizar ícones dinamicamente */}
               <View className="mb-2 flex flex-row flex-wrap justify-center">
@@ -211,7 +212,7 @@ const CreateSkillBook: React.FC = () => {
         ))}
       </View>
 
-      <View className="absolute bottom-28 w-full">
+      <View className="w-full mb-20">
         <TouchableOpacity
           onPress={handleCreateSkillBook}
           className="mt-4 w-full items-center justify-center rounded-lg bg-[--accent] py-3">
@@ -224,6 +225,8 @@ const CreateSkillBook: React.FC = () => {
         </TouchableOpacity>
       </View>
     </View>
+    </ScrollView>
+  
   );
 };
 

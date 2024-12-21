@@ -1,5 +1,5 @@
 import React, { useContext, useState, useCallback, useMemo } from 'react';
-import { View, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, ScrollView, RefreshControl, TouchableOpacity, SafeAreaView } from 'react-native';
 import Text from '~/components/Text';
 import { Container } from '~/components/Container';
 import { GeneralLevel } from '~/components/GeneralLevel';
@@ -18,6 +18,7 @@ import {
 } from '~/stores/mainStore';
 import { useShallow } from 'zustand/shallow';
 import LottieView from 'lottie-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const Index: React.FC = () => {
   const [refreshSignal, setRefreshSignal] = useState(0);
@@ -117,6 +118,8 @@ const Index: React.FC = () => {
     );
   }, [refreshSignal, inPenaltyZone, id]);
 
+  const insets = useSafeAreaInsets(); // Obtem os espaçamentos seguros
+
   if (!id) {
     return (
       <View className="flex-1 items-center justify-center bg-[--background]">
@@ -136,12 +139,12 @@ const Index: React.FC = () => {
   }
 
   return (
-    <>
+    <SafeAreaView className="flex-1 bg-[--background]">
       {/* Conteúdo principal */}
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}>
-        <View className="h-full bg-[--background]">
+        <View className="h-full">
           <Container>
             <Calendar />
             <GeneralLevel />
@@ -153,7 +156,8 @@ const Index: React.FC = () => {
       {/* Botão de criar tarefa */}
       {!inPenaltyZone && (
         <TouchableOpacity
-          className="absolute bottom-28 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-[--accent] shadow-lg"
+          className="absolute right-6 h-14 w-14 items-center justify-center rounded-full bg-[--accent] shadow-lg"
+          style={{ bottom: insets.bottom + 86 }} // Adiciona margem inferior com base no SafeArea
           onPress={() =>
             router.push({
               pathname: '/create_task',
@@ -163,7 +167,7 @@ const Index: React.FC = () => {
           <Text className="text-2xl font-bold text-white">+</Text>
         </TouchableOpacity>
       )}
-    </>
+    </SafeAreaView>
   );
 };
 

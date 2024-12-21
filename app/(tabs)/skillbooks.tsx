@@ -12,6 +12,7 @@ import { SkillBook } from '~/components/SkillBook';
 import Text from '~/components/Text';
 import { getUserSkillBooks } from '~/services/api';
 import { usePlayerDataStore } from '~/stores/mainStore';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SkillBooks: React.FC = () => {
   const { id, updateSkillBookSignal } = usePlayerDataStore(
@@ -23,6 +24,7 @@ const SkillBooks: React.FC = () => {
 
   const [skillBooks, setSkillBooks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const insets = useSafeAreaInsets();
 
   const fetchSkillBooks = async () => {
     try {
@@ -49,9 +51,9 @@ const SkillBooks: React.FC = () => {
   };
 
   return (
-    <View className="flex-1 bg-[--background]">
+    <SafeAreaView className="flex-1 bg-[--background]">
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={fetchSkillBooks} />}
       >
         <View className="p-7">
@@ -69,6 +71,9 @@ const SkillBooks: React.FC = () => {
                   onOpen={() =>
                     handleOpenSkillBook(skillBook._id, skillBook.title, skillBook.generatedToday)
                   }
+                  onDelete={() => {}}
+                  onEdit={() => {}}
+                  onViewInfo={() => {}}
                 />
               ))
             )}
@@ -78,7 +83,8 @@ const SkillBooks: React.FC = () => {
 
       {/* Botão de adicionar fixo */}
       <TouchableOpacity
-        className="absolute bottom-28 right-6 h-14 w-14 items-center justify-center rounded-full bg-[--accent] shadow-lg"
+        className="absolute right-6 h-14 w-14 items-center justify-center rounded-full bg-[--accent] shadow-lg"
+        style={{ bottom: insets.bottom + 86 }}
         onPress={() =>
           router.push({
             pathname: '/create_skillbook',
@@ -87,7 +93,7 @@ const SkillBooks: React.FC = () => {
       >
         <Text className="text-2xl font-bold text-white">+</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 

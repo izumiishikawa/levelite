@@ -14,7 +14,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext }) => {
         <View className="w-full">
           <Title text="Welcome into" />
         </View>
-        <Text className="my-4 text-6xl tracking-widest text-[--accent]" black>
+        <Text className="my-4 text-5xl tracking-widest text-[--accent]" black>
           LEVELITE
         </Text>
 

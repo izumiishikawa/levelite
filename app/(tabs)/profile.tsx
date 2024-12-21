@@ -9,6 +9,8 @@ import {
   acceptFriendRequest,
   consultPlayerInventory,
   getFriendList,
+  getFriendRequestsList,
+  updateProfileBanner,
   updateProfilePicture,
 } from '~/services/api';
 import { useRouter } from 'expo-router';
@@ -44,23 +46,27 @@ type InventoryItem = {
 };
 
 const Profile: React.FC = () => {
-  const { id, icon, setIcon, selectedClass, username, profileUpdateSignal } = usePlayerDataStore(
-    useShallow((state) => ({
-      id: state.id,
-      icon: state.icon,
-      setIcon: state.setIcon,
-      selectedClass: state.selectedClass,
-      username: state.username,
-      profileUpdateSignal: state.profileUpdateSignal,
-    }))
-  );
+  const [friendRequests, setFriendRequests] = useState<any>([]);
 
-  const { friendRequests, friends, setFriends, setFriendsRequests } = useFriendshipStore(
+
+  const { id, icon, banner, setIcon, setBanner, selectedClass, username, profileUpdateSignal } =
+    usePlayerDataStore(
+      useShallow((state) => ({
+        id: state.id,
+        icon: state.icon,
+        banner: state.banner,
+        setIcon: state.setIcon,
+        setBanner: state.setBanner,
+        selectedClass: state.selectedClass,
+        username: state.username,
+        profileUpdateSignal: state.profileUpdateSignal,
+      }))
+    );
+
+  const { friends, setFriends } = useFriendshipStore(
     useShallow((state) => ({
-      friendRequests: state.friendRequests,
       friends: state.friends,
       setFriends: state.setFriends,
-      setFriendsRequests: state.setFriendRequests,
     }))
   );
 
@@ -86,8 +92,8 @@ const Profile: React.FC = () => {
     }))
   );
 
-  const [profileImage, setProfileImage] = useState(require('../../assets/pfp.jpg')); // Imagem padrão
-  const [modalVisible, setModalVisible] = useState(false); // Estado do modal
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalType, setModalType] = useState<'profile' | 'banner' | null>(null);
 
   const [playerInventory, setPlayerInventory] = useState<InventoryItem[]>([]);
 
@@ -100,6 +106,9 @@ const Profile: React.FC = () => {
   const getInventory = useCallback(async (playerId: string) => {
     try {
       const data = await consultPlayerInventory(playerId);
+      const requests = await getFriendRequestsList();
+      console.log(requests);
+      setFriendRequests(requests.friendRequests);
       setPlayerInventory(data.items || []);
     } catch (error) {
       console.error('Erro ao buscar o inventário:', error);
@@ -129,60 +138,51 @@ const Profile: React.FC = () => {
   };
 
   const router = useRouter();
-  const pickImageFromGallery = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+  const handleImagePick = async (type: 'profile' | 'banner', source: 'camera' | 'gallery') => {
+    const permissionMethod =
+      source === 'camera' ? ImagePicker.requestCameraPermissionsAsync : ImagePicker.requestMediaLibraryPermissionsAsync;
+    const permissionResult = await permissionMethod();
     if (!permissionResult.granted) {
-      Alert.alert('Permissão necessária', 'Permissão para acessar a galeria é necessária.');
+      Alert.alert('Permissão necessária', 'Você precisa permitir o acesso.');
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
+    const result =
+      source === 'camera'
+        ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: type === 'profile' ? [1, 1] : [16, 9], quality: 1 })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: type === 'profile' ? [1, 1] : [16, 9],
+            quality: 1,
+          });
 
     if (!result.canceled) {
       const fileUri = result.assets[0].uri;
 
       try {
-        const result = await updateProfilePicture(id, fileUri); // Chama a função para atualizar no backend
-        setIcon(result);
-        setProfileImage({ uri: fileUri }); // Atualiza o estado da imagem
+        if (type === 'profile') {
+          const updatedImage = await updateProfilePicture(id, fileUri);
+          setIcon(updatedImage);
+        } else if (type === 'banner') {
+          const updatedImage = await updateProfileBanner(id, fileUri);
+          setBanner(updatedImage);
+        }
       } catch (error) {
-        Alert.alert('Erro', 'Não foi possível atualizar a foto de perfil.');
+        Alert.alert('Erro', `Não foi possível atualizar a ${type}.`);
       }
     }
 
     setModalVisible(false);
   };
 
-  const takePhotoWithCamera = async () => {
-    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert('Permissão necessária', 'Permissão para acessar a câmera é necessária.');
-      return;
+  const removeImage = (type: 'profile' | 'banner') => {
+    if (type === 'profile') {
+      setIcon(require('../../assets/pfp.jpg')); // Padrão de perfil
+    } else if (type === 'banner') {
+      setBanner(require('../../assets/pfp.jpg')); // Padrão de banner
     }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      const fileUri = result.assets[0].uri;
-
-      try {
-        const result = await updateProfilePicture(id, fileUri); // Chama a função para atualizar no backend
-        setIcon(result);
-        setProfileImage({ uri: fileUri }); // Atualiza o estado da imagem
-      } catch (error) {
-        Alert.alert('Erro', 'Não foi possível atualizar a foto de perfil.');
-      }
-    }
-
     setModalVisible(false);
   };
 
@@ -195,19 +195,15 @@ const Profile: React.FC = () => {
     getList();
   }, [friendRequests]);
 
-  const removeProfileImage = () => {
-    setProfileImage(require('../../assets/pfp.jpg')); // Reseta para a imagem padrão
-    setModalVisible(false);
-  };
 
   const handleAcceptFriendRequest = async (friendId: string) => {
     try {
       const response = await acceptFriendRequest(friendId);
 
       // Atualizar a lista de amigos e solicitações no estado
-      const updated = friendRequests.filter((request) => request.from !== friendId);
+      const updated = friendRequests.filter((request: { id: string }) => request.id !== friendId);
 
-      setFriendsRequests(updated);
+      setFriendRequests(updated);
     } catch (error) {
       console.error('Erro ao aceitar solicitação de amizade:', error);
     }
@@ -215,30 +211,26 @@ const Profile: React.FC = () => {
 
   return (
     <ScrollView className="h-full w-full bg-[--background]">
-      <Modal
-        visible={modalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setModalVisible(false)}>
+      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalContainer}>
           <View className="flex w-[90%] flex-col rounded-lg bg-[--background] p-6">
-            <Title text="Change profile picture" />
+            <Title text={`Change ${modalType === 'profile' ? 'Profile Picture' : 'Banner'}`} />
             <View className="mt-10 flex flex-row justify-between">
               <TouchableOpacity
                 className="flex flex-col items-center justify-center gap-2 rounded-lg bg-[--foreground] p-4 px-6"
-                onPress={takePhotoWithCamera}>
+                onPress={() => handleImagePick(modalType!, 'camera')}>
                 <Icon name="camera" size={30} color="#fff" />
                 <Text style={{ color: 'white' }}>Camera</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex flex-col items-center justify-center gap-2 rounded-lg bg-[--foreground] p-4 px-6"
-                onPress={pickImageFromGallery}>
+                onPress={() => handleImagePick(modalType!, 'gallery')}>
                 <Icon name="image" size={30} color="#fff" />
                 <Text style={{ color: 'white' }}>Gallery</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex flex-col items-center justify-center gap-2 rounded-lg bg-[--foreground] p-4 px-6"
-                onPress={removeProfileImage}>
+                onPress={() => removeImage(modalType!)}>
                 <Icon name="trash" size={30} color="#fff" />
                 <Text style={{ color: 'white' }}>Remove</Text>
               </TouchableOpacity>
@@ -247,28 +239,39 @@ const Profile: React.FC = () => {
         </View>
       </Modal>
       <>
-        <View style={styles.bannerContainer}>
+        <View className="relative" style={styles.bannerContainer}>
           <View style={styles.overlay} />
+          <TouchableOpacity onPress={() => {setModalVisible(true);setModalType('banner')}} className="absolute right-4 top-4 z-50 flex flex-row items-center gap-0 rounded-full bg-[--background] px-4 py-1">
+            <Icon name="pen" className="mr-2" size={10} color="#fff" />
+            <Text className="text-xs text-white" black>
+              Edit
+            </Text>
+          </TouchableOpacity>
           <Image
             resizeMethod="resize"
             resizeMode="cover"
-            source={require('../../assets/purplebanner.jpg')}
+            source={{
+              uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${banner}`,
+            }}
             style={styles.bannerImage}
           />
 
           <View style={styles.profileContainer}>
-            <TouchableOpacity onPress={() => setModalVisible(true)}>
+            <TouchableOpacity onPress={() => {setModalVisible(true);setModalType('profile')}}>
               <Image
                 resizeMethod="resize"
                 source={{
-                  uri: `https://novel-duckling-unlikely.ngrok-free.app/files/${icon}`,
+                  uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${icon}`,
                 }}
                 style={styles.profileImage}
               />
+              <View className="absolute bottom-2 right-0 flex h-8 w-8 flex-row items-center justify-center rounded-full bg-[--background]">
+                <Icon name="camera" size={16} color="#fff" />
+              </View>
             </TouchableOpacity>
           </View>
         </View>
-        <View className="mt-20 flex flex-col items-center gap-1">
+        <View className="mt-20 flex flex-col items-center  gap-1">
           <View className="flex flex-row items-center text-lg text-white">
             <Text className="text-lg text-white" bold>
               {username}{' '}
@@ -299,13 +302,13 @@ const Profile: React.FC = () => {
                   pathname: '/add_friend',
                 })
               }
-              className="mt-5 flex w-[90%] flex-row items-center justify-center rounded-lg bg-[--foreground] p-3">
+              className="mt-5 flex w-[100%] flex-row items-center justify-center rounded-lg bg-[--foreground] p-3">
               <Text black className="text-white">
-                + Add friend
+                <Icon name="user-plus" size={15} className="mr-2" /> Add friend
               </Text>
             </TouchableOpacity>
 
-            <View className="flex w-[45%] flex-col items-start gap-1 rounded-lg bg-[--foreground] px-4 py-2">
+            <View className="flex  w-[48%] flex-col flex-wrap items-start gap-1 rounded-lg bg-[--foreground] px-4 py-2">
               <View className="flex flex-row gap-2">
                 <Image
                   resizeMethod="resize"
@@ -322,7 +325,7 @@ const Profile: React.FC = () => {
               <Text className="text-xs text-[#B8B8B8]">Day Streak</Text>
             </View>
 
-            <View className="flex w-[45%] flex-col items-start gap-1 rounded-lg bg-[--foreground] px-4 py-2">
+            <View className="flex w-[48%] flex-col items-start gap-1 rounded-lg bg-[--foreground] px-4 py-2">
               <View className="flex flex-row gap-2">
                 <Icon name="bolt-lightning" size={24} color="#faaf00" />
                 <Text black className="text-lg text-[#faaf00]">
@@ -331,7 +334,7 @@ const Profile: React.FC = () => {
               </View>
               <Text className="text-xs text-[#B8B8B8]">Total EXP</Text>
             </View>
-            <View className="flex w-[45%] flex-col items-start gap-1 rounded-lg bg-[--foreground] px-4 py-2">
+            <View className="flex w-[48%] flex-col items-start gap-1 rounded-lg bg-[--foreground] px-4 py-2">
               <View className="flex flex-row gap-2">
                 <Icon name="trophy" size={24} color="#cb3d55" />
                 <Text black className="text-lg text-[#cb3d55]">
@@ -340,8 +343,8 @@ const Profile: React.FC = () => {
               </View>
               <Text className="text-xs text-[#B8B8B8]">Global Rank</Text>
             </View>
-            <View className="flex w-[45%] flex-col items-start gap-1 rounded-lg bg-[--foreground] px-4 py-2">
-              <View className="flex flex-row gap-1">
+            <View className="flex w-[48%] flex-col items-start gap-1 rounded-lg bg-[--foreground] px-4 py-2">
+              <View className="flex w-full flex-row items-center gap-1 overflow-hidden">
                 <Image
                   resizeMethod="resize"
                   source={currentClass?.icon}
@@ -350,7 +353,11 @@ const Profile: React.FC = () => {
                     height: 26,
                   }}
                 />
-                <Text black className="text-lg capitalize text-[#996DFF]">
+                <Text
+                  black
+                  className="flex-1 text-lg capitalize text-[#996DFF]"
+                  numberOfLines={1}
+                  ellipsizeMode="tail">
                   {selectedClass}
                 </Text>
               </View>
@@ -402,7 +409,7 @@ const Profile: React.FC = () => {
                         <Image
                           resizeMethod="resize"
                           source={{
-                            uri: `https://novel-duckling-unlikely.ngrok-free.app/files/${itemData.icon}`,
+                            uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${itemData.icon}`,
                           }}
                           style={{ width: 30, height: 30 }}
                         />
@@ -436,7 +443,7 @@ const Profile: React.FC = () => {
                         className="h-12 w-12 rounded-full border-2 border-[--accent]"
                         resizeMethod="resize"
                         source={{
-                          uri: `https://novel-duckling-unlikely.ngrok-free.app/files/${friend.icon}`,
+                          uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${friend.icon}`,
                         }}
                       />
                       <View className="flex flex-col gap-1">
@@ -473,12 +480,12 @@ const Profile: React.FC = () => {
                       className="h-12 w-12 rounded-full"
                       resizeMethod="resize"
                       source={{
-                        uri: `https://novel-duckling-unlikely.ngrok-free.app/files/${user.icon}`,
+                        uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${user.icon}`,
                       }}
                     />
                     <View className="flex flex-1 flex-col">
                       <Text style={{ color: 'white', fontSize: 16 }} bold>
-                        {user.name}
+                        {user.username}
                       </Text>
                       <View
                         className="flex flex-row items-center gap-2 rounded-full bg-[--accent] px-2"
@@ -488,7 +495,7 @@ const Profile: React.FC = () => {
                     <View>
                       <TouchableOpacity
                         className="rounded-lg bg-[--accent] px-4 py-2"
-                        onPress={() => handleAcceptFriendRequest(user.from)} // Substitua por sua função
+                        onPress={() => handleAcceptFriendRequest(user.id)} // Substitua por sua função
                       >
                         <Text className="text-sm text-white" bold>
                           Accept

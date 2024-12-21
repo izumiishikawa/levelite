@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Text from '../Text';
-import { View, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity, ScrollView } from 'react-native';
 import Title from '../Title';
 
 interface ObjectivesScreenProps {
@@ -20,7 +20,8 @@ export const ObjectivesScreen: React.FC<ObjectivesScreenProps> = ({ onNext, onPr
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   return (
-    <View className="flex h-full w-full flex-col items-center justify-center">
+    <ScrollView className='w-full'>
+  <View className="flex pt-32 h-full w-full flex-col items-center justify-center">
       <View className="w-[80%]">
         <View className="w-full">
           <Title text="What do you seek?" />
@@ -42,7 +43,7 @@ export const ObjectivesScreen: React.FC<ObjectivesScreenProps> = ({ onNext, onPr
         </TouchableOpacity>
       ))}
 
-      <View className="absolute bottom-10 mt-12 flex w-[80%] flex-col justify-between gap-2">
+      <View className="bottom-10 mt-12 flex w-[80%] flex-col justify-between gap-2">
         <TouchableOpacity
           className={`w-full rounded-md py-4 ${
             selectedOption ? 'bg-[--accent]' : 'bg-gray-500 opacity-50'
@@ -58,6 +59,8 @@ export const ObjectivesScreen: React.FC<ObjectivesScreenProps> = ({ onNext, onPr
         </TouchableOpacity>
       </View>
     </View>
+    </ScrollView>
+  
   );
 };
 

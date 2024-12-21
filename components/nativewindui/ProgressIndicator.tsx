@@ -17,7 +17,9 @@ const ProgressIndicator = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof View> & {
     value?: number;
     max?: number;
-    barColor?: string; // Nova prop para a cor da barra
+    barColor?: string; // Cor da barra
+    barHeight?: number; // Nova prop para definir a altura da barra
+    useLottie?: boolean; // Nova prop para ativar/desativar o Lottie
     getValueLabel?: (value: number, max: number) => string;
   }
 >(
@@ -26,6 +28,8 @@ const ProgressIndicator = React.forwardRef<
       value: valueProp,
       max: maxProp,
       barColor = '--accent', // Cor padrão
+      barHeight = 10, // Altura padrão
+      useLottie = true, // Lottie ativado por padrão
       getValueLabel = defaultGetValueLabel,
       className,
       children,
@@ -60,10 +64,10 @@ const ProgressIndicator = React.forwardRef<
 
     // Reproduz a animação do LottieView toda vez que o valor da barra muda
     React.useEffect(() => {
-      if (lottieRef.current) {
+      if (useLottie && lottieRef.current) {
         lottieRef.current.play();
       }
-    }, [value]);
+    }, [value, useLottie]);
 
     const handleLayout = (event: LayoutChangeEvent) => {
       setBarWidth(event.nativeEvent.layout.width);
@@ -83,7 +87,8 @@ const ProgressIndicator = React.forwardRef<
           now: value,
           text: getValueLabel(value, max),
         }}
-        className={cn('relative h-[10px] w-full overflow', className)}
+        className={cn('relative w-full overflow', className)}
+        style={{ height: barHeight }} // Define a altura com a nova prop
         onLayout={handleLayout} // Captura a largura da barra
         {...props}>
         <View className="absolute bottom-0 left-0 right-0 top-0 bg-muted opacity-20" />
@@ -95,27 +100,29 @@ const ProgressIndicator = React.forwardRef<
             { backgroundColor: barColor.startsWith('--') ? `var(${barColor})` : barColor },
           ]}
         />
-        <Animated.View
-          style={[
-            {
-              position: 'absolute',
-              top: -19, // Ajuste para posicionar o Lottie acima da barra
-              left: -25,
-              width: 100,
-              height: 100,
-              zIndex: 100,
-            },
-            lottiePosition,
-          ]}>
-          <LottieView
-            ref={lottieRef}
-            loop={false} // Toca apenas uma vez ao mudar o valor
-            autoPlay={false} // Só toca ao mudar o valor
-            source={require('../../assets/pulse.json')}
-            renderMode="SOFTWARE"
-            style={{ width: 50, height: 50 }}
-          />
-        </Animated.View>
+        {useLottie && ( // Exibe o Lottie somente se useLottie for true
+          <Animated.View
+            style={[
+              {
+                position: 'absolute',
+                top: -19, // Ajuste para posicionar o Lottie acima da barra
+                left: -25,
+                width: 100,
+                height: 100,
+                zIndex: 999,
+              },
+              lottiePosition,
+            ]}>
+            <LottieView
+              ref={lottieRef}
+              loop={false} // Toca apenas uma vez ao mudar o valor
+              autoPlay={false} // Só toca ao mudar o valor
+              source={require('../../assets/pulse.json')}
+              renderMode="SOFTWARE"
+              style={{ width: 50, height: 50 }}
+            />
+          </Animated.View>
+        )}
       </View>
     );
   }

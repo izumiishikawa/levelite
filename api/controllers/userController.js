@@ -106,6 +106,38 @@ router.post(
   }
 );
 
+router.post(
+  "/profile-banner",
+  multer(multerConfig).single("file"),
+  async (req, res) => {
+    try {
+      const userId = req.userId; // ID do usuário autenticado
+
+      if (!userId) {
+        return res.status(401).send({ error: "Usuário não autenticado." });
+      }
+
+      const { filename: key } = req.file; // Nome do arquivo salvo
+
+      // Atualizar o campo "profileIcon" do usuário
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { banner: key }, // Atualiza o ícone de perfil no banco de dados
+        { new: true } // Retorna o documento atualizado
+      );
+
+      if (!updatedUser) {
+        return res.status(404).send({ error: "Usuário não encontrado." });
+      }
+
+      return res.status(200).send(key);
+    } catch (error) {
+      console.error("Erro ao atualizar ícone de perfil:", error);
+      return res.status(500).send({ error: "Erro interno ao atualizar o ícone de perfil." });
+    }
+  }
+);
+
 router.put('/distribute-points', async (req, res) => {
   const { aura, vitality, focus } = req.body;
 
@@ -189,11 +221,13 @@ router.patch('/tasks/restore', async (req, res) => {
 
     const userId = task.userId;
     const xpPenalty = task.xpReward || 0;
+    
 
     const user = await User.findById(userId);
     if (user) {
       user.currentXP -= xpPenalty;
       user.totalExp -= xpPenalty;
+      user.coins -= 10
 
       while (user.xp < 0 && user.level > 1) {
         user.level -= 1;
@@ -323,6 +357,7 @@ router.put('/complete-task', async (req, res) => {
 
     user.currentXP += task.xpReward;
     user.totalExp += task.xpReward;
+    user.coins += 10
 
     while (user.currentXP >= user.xpForNextLevel) {
       user.currentXP -= user.xpForNextLevel;

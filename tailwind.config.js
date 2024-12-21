@@ -56,6 +56,7 @@ module.exports = {
         interBold: ['Inter_700Bold'],
         interExtraBold: ['Inter_800ExtraBold'],
         interBlack: ['Inter_900Black'],
+        poppinsBlack: ['Poppins_900Black']
       },
       
     },

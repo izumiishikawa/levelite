@@ -11,6 +11,10 @@ const usersSchema = new mongoose.Schema({
     type: String,
     default: "default.jpg"
   },
+  banner: {
+    type: String,
+    default: "default_banner.jpg"
+  },
   email: {
     type: String,
     required: true,
@@ -20,6 +24,12 @@ const usersSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+
+  playerTitle: {
+    type: String,
+    default: "Novice"
+  },
+
   createdAt: {
     type: Date,
     default: Date.now,
@@ -128,30 +138,14 @@ const usersSchema = new mongoose.Schema({
 
   friendId: {
     type: String,
-    default: () => uuidv4(),
+    default: () => uuidv4(), 
+    unique: true,
   },
-
   friends: {
     type: [
       {
-        friendId: { type: String, ref: 'User' },
+        friendId: { type: String }, // `friendId` dos amigos
       }
-    ],  
-    default: []
-  },
-
-  friendRequests: {
-    type: [
-      {
-        from: { type: String, ref: 'User', required: true, unique: true },
-        name: { type: String },
-        icon: { type: String },
-        status: {
-          type: String,
-          enum: ['pending', 'accepted', 'rejected'],
-          default: 'pending',
-        },
-      },
     ],
     default: [],
   },

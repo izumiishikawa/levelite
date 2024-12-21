@@ -35,6 +35,8 @@ import {
   Inter_900Black,
 } from '@expo-google-fonts/inter';
 
+import {Poppins_900Black} from "@expo-google-fonts/poppins"
+
 import { OnboardingScreens } from '../components/Onboarding/OnboardingScreens';
 import * as SplashScreen from 'expo-splash-screen';
 import { View } from 'react-native';
@@ -67,9 +69,9 @@ export default function RootLayout() {
           const {
             _id,
             icon,
+            banner,
             onboarded,
             generatedToday,
-            friendRequests,
             weight,
             height,
             username,
@@ -101,9 +103,9 @@ export default function RootLayout() {
           playerStore.setHeight(height);
           playerStore.setOnboarded(onboarded);
           playerStore.setIcon(icon);
+          playerStore.setBanner(banner);
 
           const friendStore = useFriendshipStore.getState();
-          friendStore.setFriendRequests(friendRequests);
           friendStore.setFriends(friends);
 
           const coinsAndStreakStore = useCoinsAndStreakStore.getState();
@@ -166,6 +168,7 @@ export default function RootLayout() {
   };
 
   const [fontsLoaded, fontsError] = useFonts({
+    Poppins_900Black,
     Inter_100Thin,
     Inter_200ExtraLight,
     Inter_300Light,
@@ -200,44 +203,52 @@ export default function RootLayout() {
   }
 
   return (
-    <SnackBarProvider>
-      <StatusBar style="light" />
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <BottomSheetModalProvider>
-          <ActionSheetProvider>
-            <NavThemeProvider value={NAV_THEME[colorScheme]}>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen
-                  name="create_task"
-                  options={{ presentation: 'transparentModal', animation: 'fade_from_bottom' }}
-                />
-                <Stack.Screen
-                  name="shop_item"
-                  options={{ presentation: 'transparentModal', animation: 'fade' }}
-                />
-                <Stack.Screen
-                  name="profile_item"
-                  options={{ presentation: 'transparentModal', animation: 'fade' }}
-                />
-                <Stack.Screen
-                  name="create_skillbook"
-                  options={{ presentation: 'transparentModal', animation: 'fade_from_bottom' }}
-                />
-                <Stack.Screen
-                  name="add_friend"
-                  options={{ presentation: 'transparentModal', animation: 'ios' }}
-                />
-                <Stack.Screen
-                  name="player_profile"
-                  options={{ presentation: 'transparentModal', animation: 'ios' }}
-                />
-              </Stack>
-              {showHimari && <HimariScreen onNext={handleHimariNext} />}
-            </NavThemeProvider>
-          </ActionSheetProvider>
-        </BottomSheetModalProvider>
-      </GestureHandlerRootView>
-    </SnackBarProvider>
+      <SnackBarProvider>
+        <StatusBar style="light" />
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <BottomSheetModalProvider>
+            <ActionSheetProvider>
+              <NavThemeProvider value={NAV_THEME[colorScheme]}>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen
+                    name="create_task"
+                    options={{ presentation: 'transparentModal', animation: 'fade_from_bottom' }}
+                  />
+                  <Stack.Screen
+                    name="shop_item"
+                    options={{ presentation: 'transparentModal', animation: 'fade' }}
+                  />
+                  <Stack.Screen
+                    name="profile_item"
+                    options={{ presentation: 'transparentModal', animation: 'fade' }}
+                  />
+                  <Stack.Screen
+                    name="create_skillbook"
+                    options={{ presentation: 'transparentModal', animation: 'fade_from_bottom' }}
+                  />
+                  <Stack.Screen
+                    name="add_friend"
+                    options={{ presentation: 'transparentModal', animation: 'ios' }}
+                  />
+                  <Stack.Screen
+                    name="player_profile"
+                    options={{ presentation: 'transparentModal', animation: 'ios' }}
+                  />
+                  <Stack.Screen
+                    name="main_menu"
+                    options={{ presentation: 'transparentModal', animation: 'fade' }}
+                  />
+                    <Stack.Screen
+                    name="attributes"
+                    options={{ presentation: 'transparentModal', animation: 'ios' }}
+                  />
+                </Stack>
+                {showHimari && <HimariScreen onNext={handleHimariNext} />}
+              </NavThemeProvider>
+            </ActionSheetProvider>
+          </BottomSheetModalProvider>
+        </GestureHandlerRootView>
+      </SnackBarProvider>
   );
 }

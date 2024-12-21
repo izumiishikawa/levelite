@@ -91,7 +91,9 @@ router.post('/generate-skillbook-tasks/:bookId', async (req, res) => {
     const prompt = `
      Gere 5 tarefas diárias para o tema "${skillBook.focus}" com base nos seguintes parâmetros:
   - Dificuldade: ${skillBook.parameters.difficulty}
-  - Frequência: ${skillBook.parameters.frequency}
+  - Frequência: ${skillBook.parameters.frequency}, se for diaria, devem ser tarefas rapidas e simples, capazes de serem concluidas em um unico dia, se for semanal, devem ser tarefas mais complicadas e demoradas.
+
+  As tarefas devem ser detalhadas e especificas, nada genérico, devem ser realmente passos afim de concluir aquele objetivo. que é ${skillBook.focus}, cada tarefa deve ser um passo importante em direção aquele objetivo.
 
   Estrutura de resposta (JSON): Responda somente com esse json, absolutamente mais nada
   [
@@ -102,7 +104,6 @@ router.post('/generate-skillbook-tasks/:bookId', async (req, res) => {
       "xpReward": XP da tarefa
     }
   ]
-
 
   Gere a quantidade exata de tarefas conforme solicitado acima.
   Lembre-se, devem ser diárias, ou seja, precisam ser capazes de ser concluidas em um unico dia, são 5 tarefas diárias.

@@ -50,7 +50,7 @@ const ItemDetails: React.FC = () => {
               resizeMethod="resize"
               style={{ width: 25, height: 25 }}
               source={{
-                uri: `https://novel-duckling-unlikely.ngrok-free.app/files/${icon}`,
+                uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${icon}`,
               }}
             />
             <Text className="text-white" black>
@@ -123,7 +123,7 @@ const ItemDetails: React.FC = () => {
             resizeMethod="resize"
             className="mt-10"
             source={{
-              uri: `https://novel-duckling-unlikely.ngrok-free.app/files/${icon}`,
+              uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${icon}`,
             }}
             style={{ width: 64, height: 64, marginBottom: 45, marginTop: 20 }}
           />

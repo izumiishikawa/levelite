@@ -1,6 +1,6 @@
 // pages/create-task.tsx
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Text from '~/components/Text';
 import Title from '~/components/Title';
@@ -87,7 +87,8 @@ const CreateTask: React.FC = () => {
   );
 
   return (
-    <View className="z-40 flex h-full w-full flex-col items-center bg-[--background] p-6">
+    <ScrollView>
+   <View className="z-40 flex h-full w-full flex-col items-center bg-[--background] p-6">
       <View className="mt-20 w-[80%]">
         <Title text="CREATE NEW TASK" />
       </View>
@@ -168,11 +169,11 @@ const CreateTask: React.FC = () => {
           <TouchableOpacity
             key={frequency}
             onPress={() => setSelectedFrequency(frequency as any)}
-            className={`rounded-full px-4 py-3 ${
+            className={`rounded-full w-full px-4 py-3 ${
               selectedFrequency === frequency ? 'bg-[--accent]' : 'bg-gray-700'
             }`}
             style={{ flex: 1 }}>
-            <Text bold className="text-center text-white">
+            <Text numberOfLines={1} bold className="text-center text-white">
               {frequency.toUpperCase()}
             </Text>
           </TouchableOpacity>
@@ -199,7 +200,7 @@ const CreateTask: React.FC = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                width: 110,
+                width: "100%",
               }}>
               {/* Renderizar ícones dinamicamente */}
               <View className="mb-2 flex flex-row flex-wrap justify-center">
@@ -224,7 +225,8 @@ const CreateTask: React.FC = () => {
         ))}
       </View>
 
-      <TouchableOpacity
+        <View className='mb-20 w-full'>
+        <TouchableOpacity
         onPress={handleSaveTask}
         className="mt-4 w-full items-center justify-center rounded-lg bg-[--accent] py-3">
         <Text className="font-bold text-white">Save</Text>
@@ -234,7 +236,11 @@ const CreateTask: React.FC = () => {
         className="mt-4 w-full items-center justify-center rounded-lg bg-gray-600 py-3">
         <Text className="font-bold text-white">Cancel</Text>
       </TouchableOpacity>
+        </View>
+    
     </View>
+    </ScrollView>
+ 
   );
 };
 

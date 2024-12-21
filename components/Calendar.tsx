@@ -6,6 +6,7 @@ import AnimatedRollingNumbers from './AnimatedRolling';
 import Animated, { FadeIn, SlideInLeft } from 'react-native-reanimated';
 import { useAttributesStore, useHealthAndManaStore, usePenaltyZoneStore } from '~/stores/mainStore';
 import { useShallow } from 'zustand/shallow';
+import { ProgressIndicator } from './nativewindui/ProgressIndicator';
 
 export const Calendar: React.FC = () => {
   // Acessa os dados das stores
@@ -98,19 +99,37 @@ export const Calendar: React.FC = () => {
       <View className="relative">
         <Image
           resizeMethod="resize"
-          source={require('../assets/user.png')}
+          source={require('../assets/playerprof.png')}
           style={{ width: 150, height: 150, marginBottom: 30 }}
         />
-        <View className="absolute bg-[--background] rounded-full px-2 right-0 top-[75px] flex flex-row items-center gap-0.5 text-lg text-white">
-          <AnimatedRollingNumbers fontSize={16} textColor="#fff" value={health} />
-          <Text className="text-lg text-white">/</Text>
-          <AnimatedRollingNumbers fontSize={13} textColor="#fff" value={maxHealth} />
+        <View className="absolute rounded-full px-2 left-0 bottom-10 top-[75px] flex flex-row items-center gap-0.5 text-lg text-white">
+          <AnimatedRollingNumbers fontSize={25} textColor="#cb3d55" value={health} />
+          <AnimatedRollingNumbers fontSize={11} textColor="#cb3d55" value={maxHealth} />
         </View>
 
-        <View className="absolute bg-[--background] rounded-full px-2 -right-1 top-[95px] flex flex-row items-center gap-0.5 text-lg text-white">
-          <AnimatedRollingNumbers fontSize={16} textColor="#fff" value={mana} />
-          <Text className="text-lg text-white">/</Text>
-          <AnimatedRollingNumbers fontSize={13} textColor="#fff" value={maxMana} />
+        <View className="absolute rounded-full px-2 right-3 bottom-16 flex flex-row items-center gap-0.5 text-lg text-white">
+          <AnimatedRollingNumbers fontSize={25} textColor="#faaf00" value={mana} />
+          <AnimatedRollingNumbers fontSize={11} textColor="#faaf00" value={maxMana} />
+        </View>
+
+        <View className="absolute flex w-[75%] bottom-14 left-4 -rotate-3">
+          <ProgressIndicator
+            barColor="#cb3d55"
+            barHeight={6}
+            useLottie={false}
+            value={health || 0}
+            max={maxHealth || 1} // Garantia de evitar divisões por zero
+          />
+        </View>
+
+        <View className="absolute flex w-[75%] bottom-11 left-6 -rotate-3">
+          <ProgressIndicator
+            barColor="#faaf00"
+            barHeight={6}
+            useLottie={false}
+            value={mana || 0}
+            max={maxMana || 1} // Garantia de evitar divisões por zero
+          />
         </View>
       </View>
     </View>

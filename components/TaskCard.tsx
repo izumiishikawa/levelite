@@ -204,8 +204,8 @@ export const TaskCard = ({
         animationType="fade"
         onRequestClose={() => setIsModalVisible(false)}>
         <View style={styles.modalBackground}>
-          <View className="absolute bg-[--background]" style={styles.modalContent}></View>
-          <View className="relative z-20 flex h-full w-[80%] flex-col justify-center">
+          <View className='bg-[--background] w-full h-auto'>
+          <View className="relative z-20 flex mx-auto h-full w-[80%] flex-col justify-center">
             <Title text={'Details'} />
 
             <View className="my-4 mt-10">
@@ -222,7 +222,7 @@ export const TaskCard = ({
               <Text className="text-white">{description}</Text>
             </View>
 
-            <View className="flex flex-row gap-10">
+            <View className="flex flex-row justify-between flex-wrap">
               <View className="">
                 <Text bold className="text-gray-400">
                   Attribute
@@ -265,6 +265,8 @@ export const TaskCard = ({
               </Text>
             </View>
           </View>
+          </View>
+         
         </View>
       </Modal>
 
@@ -370,7 +372,8 @@ const styles = StyleSheet.create({
     alignItems: 'center', // Centraliza texto/botões dentro do modal
     width: '150%',
     transform: [{ rotate: '12deg' }],
-    height: '70%',
+    height: "auto",
+    flex: 1,
   },
   modalText: {
     color: '#000000',

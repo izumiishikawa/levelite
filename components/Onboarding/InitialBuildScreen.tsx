@@ -61,7 +61,7 @@ export const InitialBuildScreen: React.FC<InitialBuildScreenProps> = ({ onNext, 
 
       {attributeInfo.map((attr) => (
         <View key={attr.key} className="mb-4 flex w-full flex-row items-center justify-between">
-          <View className='w-[70%]'>
+          <View className='w-[60%]'>
             <Text className="text-lg text-white">
               {attr.emoji} {attr.name}
             </Text>
@@ -87,7 +87,7 @@ export const InitialBuildScreen: React.FC<InitialBuildScreenProps> = ({ onNext, 
       ))}
 
       {/* Navigation Buttons */}
-      <View className="absolute bottom-10 mb-12 mt-6 flex w-full flex-col justify-between gap-2">
+      <View className="bottom-10 mt-12 mb-12 flex w-full flex-col justify-between gap-2">
         <TouchableOpacity
           onPress={() => onNext(attributes)}
           disabled={availablePoints !== 0}

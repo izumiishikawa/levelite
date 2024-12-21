@@ -1,9 +1,20 @@
 const express = require('express');
 const User = require('../models/users');
+const FriendRequest = require('../models/friendRequests');
 const authMiddleware = require('../middlewares/auth');
 
 const router = express.Router();
 
+// Middleware de autenticação
+router.use(authMiddleware);
+
+// Função utilitária para manipular erros
+const handleError = (res, error, message = 'Erro no servidor.') => {
+  console.error(error);
+  res.status(500).send({ error: message });
+};
+
+// Buscar usuário pelo friendId
 router.get('/user/:friendId', async (req, res) => {
   try {
     const { friendId } = req.params;
@@ -24,34 +35,47 @@ router.get('/user/:friendId', async (req, res) => {
   }
 });
 
-// Middleware de autenticação
-router.use(authMiddleware);
-
-// Função utilitária para manipular erros
-const handleError = (res, error, message = 'Erro no servidor.') => {
-  console.error(error);
-  res.status(500).send({ error: message });
-};
-
-// Buscar usuários com base em uma query
+// Rota de busca
 router.get('/search', async (req, res) => {
   try {
     const { query } = req.query;
+    const userId = req.userId;
 
     if (!query) {
       return res.status(400).send({ error: 'O parâmetro de busca é obrigatório.' });
     }
 
+    const currentUser = await User.findById(userId);
+
+    if (!currentUser) {
+      return res.status(404).send({ error: 'Usuário não encontrado.' });
+    }
+
+    const excludedIds = [currentUser.friendId, ...currentUser.friends.map(friend => friend.friendId)];
     const users = await User.find({
       username: { $regex: query, $options: 'i' },
+      friendId: { $nin: excludedIds },
     }).select('username friendId level icon');
 
-    res.status(200).send({ users });
+    const usersWithRequestInfo = await Promise.all(
+      users.map(async user => {
+        const hasPendingRequest = await FriendRequest.exists({
+          from: currentUser.friendId,
+          to: user.friendId,
+          status: 'pending',
+        });
+
+        return { ...user.toObject(), hasPendingRequest: !!hasPendingRequest };
+      })
+    );
+
+    res.status(200).send({ users: usersWithRequestInfo });
   } catch (error) {
     handleError(res, error, 'Erro ao buscar usuários.');
   }
 });
 
+// Enviar solicitação de amizade
 router.post('/request', async (req, res) => {
   try {
     const userId = req.userId;
@@ -61,38 +85,32 @@ router.post('/request', async (req, res) => {
       return res.status(400).send({ error: 'ID do amigo é obrigatório.' });
     }
 
-    const user = await User.findById(userId);
-    const friend = await User.findOne({ friendId });
+    const currentUser = await User.findById(userId);
+    const targetUser = await User.findOne({ friendId });
 
-    if (!user || !friend) {
+    if (!currentUser || !targetUser) {
       return res.status(404).send({ error: 'Usuário ou amigo não encontrado.' });
     }
 
-    if (friend.friendId === user.friendId) {
+    if (currentUser.friendId === targetUser.friendId) {
       return res.status(400).send({ error: 'Você não pode enviar uma solicitação para si mesmo.' });
     }
 
-    // Verificar se o amigo já está na lista de amigos
-    const isAlreadyFriend = user.friends.some((f) => f.friendId === friend.friendId);
-    if (isAlreadyFriend) {
-      return res.status(400).send({ error: 'O usuário já está na sua lista de amigos.' });
-    }
+    const existingRequest = await FriendRequest.findOne({
+      from: currentUser.friendId,
+      to: targetUser.friendId,
+      status: 'pending',
+    });
 
-    // Verificar se a solicitação já foi enviada
-    const existingRequest = friend.friendRequests.find((req) => req.from === user.friendId);
     if (existingRequest) {
       return res.status(400).send({ error: 'Solicitação já enviada.' });
     }
 
-    // Adicionar solicitação de amizade
-    friend.friendRequests.push({
-      from: user.friendId,
-      name: user.username,
-      icon: user.icon,
+    await FriendRequest.create({
+      from: currentUser.friendId,
+      to: targetUser.friendId,
       status: 'pending',
     });
-
-    await friend.save();
 
     res.status(200).send({ message: 'Solicitação de amizade enviada.' });
   } catch (error) {
@@ -100,7 +118,8 @@ router.post('/request', async (req, res) => {
   }
 });
 
-router.post('/accept', async (req, res) => {
+// Cancelar solicitação de amizade
+router.post('/cancel', async (req, res) => {
   try {
     const userId = req.userId;
     const { friendId } = req.body;
@@ -109,40 +128,61 @@ router.post('/accept', async (req, res) => {
       return res.status(400).send({ error: 'ID do amigo é obrigatório.' });
     }
 
-    const user = await User.findById(userId);
-    const friend = await User.findOne({ friendId });
+    const currentUser = await User.findById(userId);
 
-    if (!user || !friend) {
-      return res.status(404).send({ error: 'Usuário ou amigo não encontrado.' });
+    if (!currentUser) {
+      return res.status(404).send({ error: 'Usuário não encontrado.' });
     }
 
-    // Verificar se o amigo já está na lista de amigos
-    const isAlreadyFriend = user.friends.some((f) => f.friendId === friend.friendId);
-    if (isAlreadyFriend) {
-      return res.status(400).send({ error: 'Usuário já está na lista de amigos.' });
-    }
+    const request = await FriendRequest.findOneAndDelete({
+      from: currentUser.friendId,
+      to: friendId,
+      status: 'pending',
+    });
 
-    const requestIndex = user.friendRequests.findIndex(
-      (req) => req.from === friendId && req.status === 'pending'
-    );
-
-    if (requestIndex === -1) {
+    if (!request) {
       return res.status(400).send({ error: 'Solicitação não encontrada ou já processada.' });
     }
 
-    // Remover solicitação e adicionar à lista de amigos
-    user.friendRequests.splice(requestIndex, 1);
+    res.status(200).send({ message: 'Solicitação de amizade cancelada com sucesso.' });
+  } catch (error) {
+    handleError(res, error, 'Erro ao cancelar solicitação de amizade.');
+  }
+});
 
-    user.friends.push({
-      friendId: friend.friendId,
-    });
+// Aceitar solicitação de amizade
+router.post('/accept', async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { friendId } = req.body;
 
-    friend.friends.push({
-      friendId: user.friendId,
-    });
+    console.log(friendId)
 
-    await user.save();
-    await friend.save();
+    if (!friendId) {
+      return res.status(400).send({ error: 'ID do amigo é obrigatório.' });
+    }
+
+    const currentUser = await User.findById(userId);
+    const targetUser = await User.findOne({ friendId });
+
+    if (!currentUser || !targetUser) {
+      return res.status(404).send({ error: 'Usuário ou amigo não encontrado.' });
+    }
+
+    const request = await FriendRequest.findOneAndUpdate(
+      { from: friendId, to: currentUser.friendId, status: 'pending' },
+      { status: 'accepted' }
+    );
+
+    if (!request) {
+      return res.status(400).send({ error: 'Solicitação não encontrada ou já processada.' });
+    }
+
+    currentUser.friends.push({ friendId });
+    targetUser.friends.push({ friendId: currentUser.friendId });
+
+    await currentUser.save();
+    await targetUser.save();
 
     res.status(200).send({ message: 'Solicitação de amizade aceita.' });
   } catch (error) {
@@ -150,54 +190,18 @@ router.post('/accept', async (req, res) => {
   }
 });
 
-// Rejeitar solicitação de amizade
-router.post('/reject', async (req, res) => {
-  try {
-    const userId = req.userId;
-    const { friendId } = req.body;
-
-    if (!friendId) {
-      return res.status(400).send({ error: 'ID do amigo é obrigatório.' });
-    }
-
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return res.status(404).send({ error: 'Usuário não encontrado.' });
-    }
-
-    const requestIndex = user.friendRequests.findIndex(
-      (req) => req.from === friendId && req.status === 'pending'
-    );
-
-    if (requestIndex === -1) {
-      return res.status(400).send({ error: 'Solicitação não encontrada ou já processada.' });
-    }
-
-    user.friendRequests.splice(requestIndex, 1);
-    await user.save();
-
-    res.status(200).send({ message: 'Solicitação de amizade rejeitada.' });
-  } catch (error) {
-    handleError(res, error, 'Erro ao rejeitar solicitação de amizade.');
-  }
-});
-
 // Listar amigos
 router.get('/list', async (req, res) => {
   try {
     const userId = req.userId;
+    const currentUser = await User.findById(userId);
 
-    // Encontrar o usuário autenticado
-    const user = await User.findById(userId);
-
-    if (!user) {
+    if (!currentUser) {
       return res.status(404).send({ error: 'Usuário não encontrado.' });
     }
 
-    // Buscar detalhes dos amigos usando friendId
     const friends = await User.find(
-      { friendId: { $in: user.friends.map((friend) => friend.friendId) } },
+      { friendId: { $in: currentUser.friends.map(friend => friend.friendId) } },
       'username level icon friendId'
     );
 
@@ -211,17 +215,40 @@ router.get('/list', async (req, res) => {
 router.get('/requests', async (req, res) => {
   try {
     const userId = req.userId;
+    const currentUser = await User.findById(userId);
 
-    const user = await User.findById(userId).populate('friendRequests.from', 'username level icon');
-
-    if (!user) {
+    if (!currentUser) {
       return res.status(404).send({ error: 'Usuário não encontrado.' });
     }
 
-    res.status(200).send({ friendRequests: user.friendRequests });
+    // Busca todas as solicitações pendentes direcionadas ao usuário atual
+    const friendRequests = await FriendRequest.find({ to: currentUser.friendId, status: 'pending' });
+
+    // Para cada solicitação, busca os dados do remetente no banco de dados
+    const formattedRequests = await Promise.all(
+      friendRequests.map(async request => {
+        const user = await User.findOne({ friendId: request.from }).select('username level icon');
+        if (user) {
+          return {
+            id: request.from,
+            username: user.username,
+            level: user.level,
+            icon: user.icon,
+          };
+        }
+        return null;
+      })
+    );
+
+    // Remove quaisquer entradas nulas resultantes de usuários inexistentes
+    const validRequests = formattedRequests.filter(request => request !== null);
+
+    res.status(200).send({ friendRequests: validRequests });
   } catch (error) {
     handleError(res, error, 'Erro ao listar solicitações de amizade.');
   }
 });
+
+
 
 module.exports = (app) => app.use('/friendship', router);

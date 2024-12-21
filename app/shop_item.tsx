@@ -44,7 +44,7 @@ const ShopItemPage: React.FC = () => {
               resizeMethod="resize"
               style={{ width: 25, height: 25 }}
               source={{
-                uri: `https://novel-duckling-unlikely.ngrok-free.app/files/${icon}`,
+                uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${icon}`,
               }}
             />
             <Text className="text-white" black>
@@ -67,11 +67,11 @@ const ShopItemPage: React.FC = () => {
               resizeMethod="resize"
               style={{ width: 25, height: 25 }}
               source={{
-                uri: `https://novel-duckling-unlikely.ngrok-free.app/files/${icon}`,
+                uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${icon}`,
               }}
             />
             <Text className="text-white" black>
-              You don't have enougth coins.
+              You don't have enough coins.
             </Text>
           </View>
         );
@@ -89,7 +89,7 @@ const ShopItemPage: React.FC = () => {
           style={{ width: 100, height: 100, top: 40, transform: [{ rotate: '45deg' }] }}></View>
         <Image
           resizeMethod="resize"
-          source={{ uri: `https://novel-duckling-unlikely.ngrok-free.app/files/${icon}` }}
+          source={{ uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${icon}` }}
           style={{ width: 64, height: 64, marginBottom: 45, marginTop: 20 }}
         />
         <Text black className="text-lg text-white">

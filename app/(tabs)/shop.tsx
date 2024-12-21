@@ -85,7 +85,7 @@ const Shop: React.FC = () => {
               <Image
                 resizeMethod="resize"
                 source={{
-                  uri: `https://novel-duckling-unlikely.ngrok-free.app/files/${item.icon}`,
+                  uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${item.icon}`,
                 }}
                 style={{ width: 42, height: 42 }}
               />

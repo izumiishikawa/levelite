@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { router, Tabs } from 'expo-router';
 import React, { useState, useReducer, useRef, useCallback, useContext } from 'react';
 import { StyleSheet, Image, LayoutChangeEvent, TouchableOpacity, View } from 'react-native';
 import Text from '~/components/Text';
@@ -63,7 +63,19 @@ const HeaderLeft = React.memo(({ selectedClass }: { selectedClass?: Class }) => 
 ));
 
 const HeaderRight = React.memo(
-  ({ icon, coins, gems, streak, toggleBottomSheet }: { icon?: string, coins?: any; gems?: any, streak: any; toggleBottomSheet: () => void }) => (
+  ({
+    icon,
+    coins,
+    gems,
+    streak,
+    toggleBottomSheet,
+  }: {
+    icon?: string;
+    coins?: any;
+    gems?: any;
+    streak: any;
+    toggleBottomSheet: () => void;
+  }) => (
     <View style={styles.headerRightContainer}>
       <View style={styles.headerItemContainer}>
         <Image
@@ -93,7 +105,7 @@ const HeaderRight = React.memo(
         <Image
           resizeMethod="resize"
           source={{
-            uri: `https://novel-duckling-unlikely.ngrok-free.app/files/${icon}`,
+            uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${icon}`,
           }}
           style={styles.profileImage}
         />
@@ -103,15 +115,17 @@ const HeaderRight = React.memo(
 );
 
 export default function TabLayout() {
-  const {icon, selectedClass} = usePlayerDataStore(useShallow((state) => ({
-    icon: state.icon,
-    selectedClass: state.selectedClass
-  })))
-  const {coins, streak, gems} = useCoinsAndStreakStore()
+  const { icon, selectedClass } = usePlayerDataStore(
+    useShallow((state) => ({
+      icon: state.icon,
+      selectedClass: state.selectedClass,
+    }))
+  );
+  const { coins, streak, gems } = useCoinsAndStreakStore();
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
   const toggleBottomSheet = useCallback(() => {
-    setIsBottomSheetOpen((prev) => !prev);
+    router.push({ pathname: '/main_menu' });
   }, []);
 
   const currentClass = classes.find((cls) => cls.id === selectedClass);
@@ -124,7 +138,13 @@ export default function TabLayout() {
           headerStyle: styles.headerStyle,
           headerLeft: () => <HeaderLeft selectedClass={currentClass} />,
           headerRight: () => (
-            <HeaderRight icon={icon} coins={coins} streak={streak} gems={gems} toggleBottomSheet={toggleBottomSheet} />
+            <HeaderRight
+              icon={icon}
+              coins={coins}
+              streak={streak}
+              gems={gems}
+              toggleBottomSheet={toggleBottomSheet}
+            />
           ),
         }}>
         <Tabs.Screen

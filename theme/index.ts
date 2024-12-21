@@ -5,6 +5,7 @@ interface CustomTheme extends Theme {
   font: {
     regular: string;
     bold: string;
+    black: string;
   };
 }
 
@@ -22,6 +23,7 @@ const NAV_THEME: { light: CustomTheme; dark: CustomTheme } = {
     font: {
       regular: 'Inter_400Regular',
       bold: 'Inter_700Bold',
+      black: 'Poppins_900Black',
     },
   },
   dark: {
@@ -37,6 +39,7 @@ const NAV_THEME: { light: CustomTheme; dark: CustomTheme } = {
     font: {
       regular: 'Inter_400Regular',
       bold: 'Inter_700Bold',
+      black: 'Poppins_900Black',
     },
   },
 };

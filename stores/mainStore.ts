@@ -3,6 +3,7 @@ import { create } from 'zustand';
 interface PlayerDataStore {
   id: string;
   icon: string;
+  banner: string,
   username: string;
   generatedToday: boolean | null;
   selectedClass: string;
@@ -16,6 +17,7 @@ interface PlayerDataStore {
   setUpdateSkillBookSignal: (updateTasksSignal: number) => void;
   setOnboarded: (onboarded: boolean) => void;
   setIcon: (icon: string) => void;
+  setBanner: (banner: string) => void;
   setId: (id: string) => void;
   setProfileUpdateSignal: (profileUpdateSignal: number) => void;
   setSelectedClass: (selectedClass: string) => void;
@@ -28,6 +30,7 @@ interface PlayerDataStore {
 export const usePlayerDataStore = create<PlayerDataStore>((set) => ({
   id: '',
   icon: '',
+  banner: '',
   username: '',
   generatedToday: null,
   selectedClass: '',
@@ -41,6 +44,7 @@ export const usePlayerDataStore = create<PlayerDataStore>((set) => ({
   setUpdateSkillBookSignal: (updateSkillBookSignal) => set({ updateSkillBookSignal }),
   setOnboarded: (onboarded) => set({ onboarded }),
   setIcon: (icon) => set({ icon }),
+  setBanner: (banner) => set({ banner }),
   setId: (id) => set({ id }),
   setProfileUpdateSignal: (profileUpdateSignal) => set({ profileUpdateSignal }),
   setGeneratedToday: (generatedToday) => set({ generatedToday }),
