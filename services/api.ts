@@ -403,8 +403,6 @@ export const fetchFriendsRanking = async (page: number = 1, limit: number = 10):
   }
 };
 
-
-
 export const getFriendList = async (): Promise<any> => {
   const userToken = await AsyncStorage.getItem('userToken');
 
@@ -450,7 +448,6 @@ export const getFriendRequestsList = async (): Promise<any> => {
     throw new Error('Failed to fetch users. Please try again later.');
   }
 };
-
 
 export const getPlayersProfile = async (friendId: string): Promise<any> => {
   const userToken = await AsyncStorage.getItem('userToken');
@@ -592,7 +589,6 @@ export const updateProfileBanner = async (userId: string, fileUri: string): Prom
   }
 };
 
-
 export const consultClassTasks = async (userId: string) => {
   const userToken = await AsyncStorage.getItem('userToken');
   try {
@@ -723,6 +719,110 @@ export const getSkillBookTasks = async (bookId: string) => {
   }
 };
 
+export const getSkillBookById = async (skillBookId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
+  try {
+    const response = await axios.get(`${url}/skillbooks/${skillBookId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
+      },
+    });
+
+    switch (response.status) {
+      case 200:
+        return response.data; // Retorna os SkillBooks
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    return null; // Repassa o erro para ser tratado onde a função for chamada
+  }
+};
+
+export const getProgressCalendar = async (year: number, month: number) => {
+  const userToken = await AsyncStorage.getItem('userToken');
+  try {
+    const response = await axios.get(`${url}/progress/progress-calendar`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
+      },
+      params: { year, month },
+    });
+
+    if (response.status === 200) {
+      return response.data; // Retorna o progresso do calendário
+    } else {
+      throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error fetching progress calendar:', error);
+    return null; // Retorna null para indicar falha
+  }
+};
+
+export const removeSkillBook = async (skillBookId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
+  try {
+    const response = await axios.delete(`${url}/skillbooks/remove/${skillBookId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${userToken}`,
+      },
+    });
+
+    switch (response.status) {
+      case 200:
+        return response.data.tasks; // Retorna os SkillBooks
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    return null; // Repassa o erro para ser tratado onde a função for chamada
+  }
+};
+
+export const updateSkillBook = async (
+  skillBookId: string,
+  skillBook: {
+    title: string;
+    focus: string;
+    parameters: {
+      difficulty: 'low' | 'medium' | 'high';
+      frequency: 'daily' | 'weekly';
+      level: 'beginner' | 'intermediate' | 'expert';
+    };
+  }
+) => {
+  const userToken = await AsyncStorage.getItem('userToken');
+  try {
+    const response = await axios.put(
+      `${url}/skillbooks/update-skillbook/${skillBookId}`,
+      { ...skillBook },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
+        },
+      }
+    );
+
+    switch (response.status) {
+      case 200:
+        return response.data.tasks; // Retorna os SkillBooks
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    return null; // Repassa o erro para ser tratado onde a função for chamada
+  }
+};
+
 export const generateSkillBookTasks = async (bookId: string) => {
   const userToken = await AsyncStorage.getItem('userToken');
 
@@ -749,12 +849,12 @@ export const generateSkillBookTasks = async (bookId: string) => {
   }
 };
 
-export const generateClassTasks = async (userId: string, classId: string) => {
+export const generateClassTasks = async (userId: string) => {
   const userToken = await AsyncStorage.getItem('userToken');
   try {
     const response = await axios.post(
       `${url}/class/generate-class-tasks`,
-      { classId, userId },
+      { userId },
       {
         headers: {
           'Content-Type': 'application/json',
@@ -804,6 +904,7 @@ export const createSkillBook = async (
     parameters: {
       difficulty: 'low' | 'medium' | 'high';
       frequency: 'daily' | 'weekly';
+      level: 'beginner' | 'intermediate' | 'expert';
     };
   }
 ) => {

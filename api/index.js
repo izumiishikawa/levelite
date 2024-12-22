@@ -3,21 +3,18 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const cron = require('node-cron');
-const axios = require('axios');
 const Task = require('./models/tasks');
 const path = require("path");
-const User = require('./models/users'); // Certifique-se de ajustar o caminho do modelo User
+const User = require('./models/users'); 
 
 const app = express();
 
 app.use("/files", express.static(path.join(__dirname, "tmp", "uploads")));
 
-// Middleware para permitir CORS e parsing de JSON
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Conexão com o banco de dados MongoDB
 mongoose.connect('mongodb://localhost:27017/levelite', {});
 
 const connection = mongoose.connection;
@@ -28,34 +25,30 @@ connection.on('connected', () => {
 
 mongoose.Promise = global.Promise;
 
-// Importa as rotas do controlador
 require('./controllers/index')(app);
 
 const PORT = 3000 || 3001;
 
-const GROWTH_FACTOR = 1.5; // Fator de crescimento maior para aumentar drasticamente o XP necessário por nível
+const GROWTH_FACTOR = 1.03; 
 
-// Função para calcular o XP necessário para o próximo nível
 function calculateXpForNextLevel(level, base_exp) {
   return Math.floor(base_exp * Math.pow(GROWTH_FACTOR, level - 1));
 }
 
-// Função para calcular o XP de recompensa com base na dificuldade e nível do jogador
 function calculateTaskXpReward(level, difficulty, base_exp) {
   const XP_next_level = calculateXpForNextLevel(level, base_exp);
 
-  // Percentual ajustado para atingir ~16 tarefas
   let xpPercentage;
 
   switch (difficulty) {
     case 'low':
-      xpPercentage = 0.005; // 5% do XP necessário para o próximo nível
+      xpPercentage = 0.025; 
       break;
     case 'medium':
-      xpPercentage = 0.007; // 7.5% do XP necessário para o próximo nível
+      xpPercentage = 0.035; 
       break;
     case 'high':
-      xpPercentage = 0.010; // 10% do XP necessário para o próximo nível
+      xpPercentage = 0.045;
       break;
     default:
       xpPercentage = 0.005;
@@ -64,10 +57,7 @@ function calculateTaskXpReward(level, difficulty, base_exp) {
   return Math.floor(XP_next_level * xpPercentage);
 }
 
-/**
- * Função utilitária para calcular o início e fim do dia atual.
- * Necessário para filtrar tarefas específicas do dia.
- */
+
 const startOfToday = () => {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
@@ -79,23 +69,25 @@ const endOfToday = () => {
   now.setHours(23, 59, 59, 999);
   return now;
 };
-
 cron.schedule('59 23 * * *', async () => {
   console.log('Iniciando tarefas do cron job consolidado...');
 
   const users = await User.find();
 
-  // 1. Verificação de progresso diário
   console.log('Verificação de progresso diário iniciada...');
   for (const user of users) {
     try {
-      // Penaliza usuários na zona de penalidade
       if (user.inPenaltyZone) {
         user.health -= 35;
         user.inPenaltyZone = false;
+
+        const pendingPenaltyTasks = await Task.find({ userId: user._id, type: "penaltyTask", status: 'pending' });
+        for (const task of pendingPenaltyTasks) {
+          task.status = "incomplete";
+          await task.save();
+        }
       }
 
-      // Busca todas as tarefas pendentes de hoje
       const pendingTasks = await Task.find({
         userId: user._id,
         type: "dailyQuests",
@@ -103,22 +95,18 @@ cron.schedule('59 23 * * *', async () => {
         dateAssigned: { $gte: startOfToday(), $lt: endOfToday() },
       });
 
-      // Verifica se existem tarefas pendentes
       const hasIncompleteTasks = pendingTasks.length > 0;
 
-      // Marca todas as tarefas pendentes como incompletas
       for (const task of pendingTasks) {
         task.status = 'incomplete';
         await task.save();
       }
 
-      // Se houver tarefas incompletas, zera a streak e cria penalidades
       if (hasIncompleteTasks) {
         user.streak = 0;
         user.inPenaltyZone = true;
         console.log(`Streak do usuário ${user._id} foi zerada e penalidades serão geradas.`);
 
-        // Cria tarefas de penalidade fixas
         const penaltyTasks = [
           { title: '100 push-ups', attribute: 'vitality', intensityLevel: 'high', xpReward: 10 },
           { title: '100 sit-ups', attribute: 'vitality', intensityLevel: 'high', xpReward: 10 },
@@ -143,7 +131,6 @@ cron.schedule('59 23 * * *', async () => {
         console.log(`Tarefas de penalidade criadas para o usuário ${user._id}`);
       }
 
-      // Reseta campos do usuário para o próximo dia
       user.generatedToday = false;
       user.allDone = false;
 
@@ -154,7 +141,6 @@ cron.schedule('59 23 * * *', async () => {
   }
   console.log('Verificação de progresso diário concluída.');
 
-  // 2. Reseta os campos generatedToday dos SkillBooks
   console.log('Resetando campos generatedToday dos SkillBooks...');
   try {
     await SkillBook.updateMany({}, { $set: { generatedToday: false } });
@@ -163,11 +149,9 @@ cron.schedule('59 23 * * *', async () => {
     console.error('Erro ao resetar campos generatedToday nos SkillBooks:', error.message);
   }
 
-  // 3. Geração de tarefas diárias
   console.log('Geração de tarefas diárias iniciada...');
   for (const user of users) {
     try {
-      // Busca tarefas diárias de ontem
       const dailyTasks = await Task.find({
         userId: user._id,
         recurrence: 'daily',
@@ -175,7 +159,6 @@ cron.schedule('59 23 * * *', async () => {
       });
 
       for (const task of dailyTasks) {
-        // Verifica se a tarefa já foi recriada hoje
         const existingTask = await Task.findOne({
           userId: user._id,
           title: task.title,
@@ -207,13 +190,41 @@ cron.schedule('59 23 * * *', async () => {
   }
   console.log('Geração de tarefas diárias concluída.');
 
+  console.log('Verificação de tarefas semanais iniciada...');
+  try {
+    const weeklyTasks = await Task.find({
+      recurrence: 'weekly',
+      type: 'classQuests',
+      status: 'pending',
+    });
+  
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  
+    for (const task of weeklyTasks) {
+      if (task.dateAssigned < oneWeekAgo) {
+        task.status = 'incomplete';
+        await task.save();
+  
+        const user = await User.findById(task.userId);
+        if (user) {
+          user.classGeneratedWeek = false; 
+          await user.save();
+          console.log(`classGeneratedWeek resetado para o usuário ${user._id}`);
+        }
+  
+        console.log(`Tarefa semanal marcada como incompleta: ${task.title} para o usuário ${task.userId}`);
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao verificar tarefas semanais:', error.message);
+  }
+  console.log('Verificação de tarefas semanais concluída.');
+
   console.log('Cron job consolidado finalizado.');
 });
 
 
-/**
- * Inicia o servidor Express
- */
 app.listen(PORT, () => {
   console.log(`Servidor escutando na porta ${PORT}`);
 });

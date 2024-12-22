@@ -9,12 +9,11 @@ import { useShallow } from 'zustand/shallow';
 import { useAttributesStore, useLevelsAndExpStore } from '~/stores/mainStore';
 import { distributeAttributes } from '~/services/api';
 import { router } from 'expo-router';
-
 const AttributeCircle: React.FC = () => {
   const { pointsToDistribute, setPointsToDistribute } = useLevelsAndExpStore(
     useShallow((state) => ({
       pointsToDistribute: state.pointsToDistribute,
-      setPointsToDistribute: state.setPointsToDistribute
+      setPointsToDistribute: state.setPointsToDistribute,
     }))
   );
 
@@ -40,13 +39,61 @@ const AttributeCircle: React.FC = () => {
     focus,
   });
 
+  // Titles for attributes
+  const titles = {
+    vitality: [
+      'Fragile',
+      'Weak',
+      'Average',
+      'Strong',
+      'Durable',
+      'Iron Body',
+      'Unbreakable',
+      'Titanic',
+      'Colossal',
+      'Immortal',
+    ],
+    aura: [
+      'No Presence',
+      'Faint',
+      'Noticeable',
+      'Influential',
+      'Commanding',
+      'Imposing',
+      'Dominant',
+      'Regal',
+      'Majestic',
+      'Legendary',
+    ],
+    focus: [
+      'Scatterbrain',
+      'Unfocused',
+      'Average',
+      'Sharp',
+      'Insightful',
+      'Brilliant',
+      'Genius',
+      'Mastermind',
+      'Prodigy',
+      'Omniscient',
+    ],
+  };
+
+  const getTitle = (attribute: number, type: keyof typeof titles) => {
+    const index = Math.min(Math.floor(attribute / 5), titles[type].length - 1);
+    return titles[type][index];
+  };
+
   const handlePlayAnimation = (animationRef: React.RefObject<LottieView>) => {
     if (animationRef.current) {
       animationRef.current.play();
     }
   };
 
-  const handleAddPoint = (key: keyof typeof attributes, animationRef: React.RefObject<LottieView>) => {
+  const handleAddPoint = (
+    key: keyof typeof attributes,
+    animationRef: React.RefObject<LottieView>
+  ) => {
     if (availablePoints > 0) {
       setAttributes((prev) => ({ ...prev, [key]: prev[key] + 1 }));
       setAvailablePoints((prev) => prev - 1);
@@ -100,7 +147,7 @@ const AttributeCircle: React.FC = () => {
         alignItems: 'center',
         zIndex: 10,
       }}>
-      <Text black className='text-5xl text-white'>
+      <Text black className="text-5xl text-white">
         -
       </Text>
     </TouchableOpacity>
@@ -111,7 +158,7 @@ const AttributeCircle: React.FC = () => {
     label: string,
     value: number,
     animationRef: React.RefObject<LottieView>,
-    subtitle: string
+    type: keyof typeof titles
   ) => (
     <View style={{ position: 'relative' }}>
       {attributes[key] > (key === 'aura' ? aura : key === 'vitality' ? vitality : focus) &&
@@ -120,7 +167,7 @@ const AttributeCircle: React.FC = () => {
         <View
           style={{ width: 202, height: 202 }}
           className="relative flex items-center justify-center rounded-full bg-[--accent]">
-          <View className="absolute left-0 h-full w-full bg-slate-100">
+          <View className="absolute left-0 h-full w-full">
             <LottieView
               ref={animationRef}
               loop={false}
@@ -136,16 +183,16 @@ const AttributeCircle: React.FC = () => {
             />
           </View>
 
-          <View className="absolute top-4 flex rotate-6 flex-col items-center gap-0">
+          <View className="absolute w-full top-4 flex rotate-6 flex-col items-center gap-0">
             <Text className="text-5xl text-white" black>
               {label}
             </Text>
             <AnimatedRollingNumbers value={value} textColor="#fff" fontSize={100} />
-          </View>
-          <View className="absolute bottom-4 w-[110%] rotate-6 bg-[--foreground] px-4 py-2">
-            <Text className="text-center text-lg text-white" bold>
-              {subtitle}
-            </Text>
+            <View className="absolute -bottom-8 w-[110%] rotate-6 bg-[--foreground] px-4 py-2">
+              <Text className="text-center text-lg text-white" bold>
+                {getTitle(value, type)}
+              </Text>
+            </View>
           </View>
         </View>
       </TouchableWithoutFeedback>
@@ -157,30 +204,34 @@ const AttributeCircle: React.FC = () => {
       <View className="mb-20 mt-20 flex h-full w-full flex-col items-center bg-[--background]">
         <View className="w-[80%]">
           <Title text="Attributes" />
-
-          <Text className="text-white text-center my-4">
-            Here lies the power to shape your destiny: distribute your points and craft the ultimate build
+          <Text className="my-4 text-center text-white">
+            Here lies the power to shape your destiny: distribute your points and craft the ultimate
+            build
           </Text>
 
-          <View className='flex flex-row w-full items-center gap-4'>
-            <View className='bg-[--accent] w-12 h-12 flex justify-center items-center rounded-full'>
-              <Text className='text-white text-3xl' black>{availablePoints}</Text>
+          <View className="flex w-full flex-row items-center gap-4">
+            <View className="flex h-12 w-12 items-center justify-center rounded-full bg-[--accent]">
+              <Text className="text-3xl text-white" black>
+                {availablePoints}
+              </Text>
             </View>
-            <Text className='text-white text-3xl' bold>REMAINING POINTS</Text>
+            <Text className="text-3xl text-white" bold>
+              REMAINING POINTS
+            </Text>
           </View>
         </View>
 
         <View className="relative mt-10 flex w-[90%] flex-col items-center justify-center gap-10">
-          {renderCircle('vitality', 'Vitality', attributes.vitality, vitalityAnimation, 'Weak')}
-          {renderCircle('aura', 'Aura', attributes.aura, auraAnimation, 'Noise')}
-          {renderCircle('focus', 'Focus', attributes.focus, focusAnimation, 'Dumb')}
+          {renderCircle('vitality', 'Vitality', attributes.vitality, vitalityAnimation, 'vitality')}
+          {renderCircle('aura', 'Aura', attributes.aura, auraAnimation, 'aura')}
+          {renderCircle('focus', 'Focus', attributes.focus, focusAnimation, 'focus')}
         </View>
 
         <TouchableOpacity
           onPress={handleConfirm}
           style={{
             marginTop: 40,
-            width: "80%",
+            width: '80%',
             height: 50,
             backgroundColor: availablePoints === pointsToDistribute ? '#2A2A35' : '#996DFF',
             justifyContent: 'center',
@@ -188,7 +239,7 @@ const AttributeCircle: React.FC = () => {
             borderRadius: 12,
           }}
           disabled={availablePoints === pointsToDistribute}>
-          <Text className="text-white text-xl" bold>
+          <Text className="text-xl text-white" bold>
             Confirm
           </Text>
         </TouchableOpacity>

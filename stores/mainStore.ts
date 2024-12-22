@@ -1,17 +1,31 @@
 import { create } from 'zustand';
 
+interface AuthStore {
+  isLogged: boolean;
+  setIsLogged: (isLogged: boolean) => void;
+}
+
+export const useAuthStore = create<AuthStore>((set) => ({
+  isLogged: true,
+  setIsLogged: (isLogged) => set({isLogged})
+}))
+
 interface PlayerDataStore {
   id: string;
   icon: string;
   banner: string,
   username: string;
+  playerTitle: string;
   generatedToday: boolean | null;
+  classGeneratedWeek: boolean | null;
   selectedClass: string;
   profileUpdateSignal: number;
   height: number;
   weight: number;
   onboarded: boolean;
   updateTasksSignal: number;
+  setClassGeneratedWeek: (classGeneratedWeek: boolean) => void;
+  setPlayerTitle: (playerTitle: string) => void;
   setUpdateTaskSignal: (updateTasksSignal: number) => void;
   updateSkillBookSignal: number;
   setUpdateSkillBookSignal: (updateTasksSignal: number) => void;
@@ -32,13 +46,17 @@ export const usePlayerDataStore = create<PlayerDataStore>((set) => ({
   icon: '',
   banner: '',
   username: '',
+  playerTitle: '',
   generatedToday: null,
+  classGeneratedWeek: null,
   selectedClass: '',
   profileUpdateSignal: 0,
   height: 0,
   weight: 0,
   onboarded: false,
   updateTasksSignal: 0,
+  setClassGeneratedWeek: (classGeneratedWeek) => set({classGeneratedWeek}),
+  setPlayerTitle: (playerTitle) => set({playerTitle}),
   setUpdateTaskSignal: (updateTasksSignal) => set({ updateTasksSignal }),
   updateSkillBookSignal: 0,
   setUpdateSkillBookSignal: (updateSkillBookSignal) => set({ updateSkillBookSignal }),

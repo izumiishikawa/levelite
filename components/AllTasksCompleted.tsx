@@ -111,7 +111,7 @@ export default function AllTasksCompleted({ onComplete }: { onComplete: () => vo
             source={require('../assets/streak.json')}
           />
           <Text style={styles.streakNumber}>
-            <AnimatedRollingNumbers value={streak + 1} textColor='#FF9600' />
+            <AnimatedRollingNumbers value={streak} textColor='#FF9600' />
           </Text>
           {/* <StreakCalendar streak={playerData?.streak || 0} /> */}
           <Text style={styles.contentTextStreak}>

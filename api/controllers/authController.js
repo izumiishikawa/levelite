@@ -98,7 +98,7 @@ router.post('/authenticate', async (req, res) => {
 
     res.send({ check_user, token: generateToken({ id: check_user.id }) });
   } catch (error) {
-    console.error(error); // Log do erro para depuração
+    console.error(error); 
     res.status(500).send('Internal Server Error');
   }
 });

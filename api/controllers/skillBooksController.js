@@ -1,6 +1,5 @@
 const express = require('express');
 const User = require('../models/users');
-const Profile = require('../models/profiles');
 const Task = require('../models/tasks');
 const SkillBook = require('../models/skillbook');
 const OpenAI = require('openai');
@@ -20,13 +19,13 @@ function calculateTaskXpReward(level, difficulty, base_exp) {
 
   switch (difficulty) {
     case 'low':
-      xpPercentage = 0.025; // 5% do XP necessário para o próximo nível
+      xpPercentage = 0.025;
       break;
     case 'medium':
-      xpPercentage = 0.035; // 7.5% do XP necessário para o próximo nível
+      xpPercentage = 0.035;
       break;
     case 'high':
-      xpPercentage = 0.045; // 10% do XP necessário para o próximo nível
+      xpPercentage = 0.045;
       break;
     default:
       xpPercentage = 0.005;
@@ -54,6 +53,20 @@ router.get('/user-skillbooks', async (req, res) => {
   }
 });
 
+router.get('/:skillBookId', async (req, res) => {
+  const userId = req.userId;
+  const {skillBookId} = req.params
+
+  try {
+    const skillBook = await SkillBook.findOne({ userId, _id: skillBookId });
+
+    res.status(200).json(skillBook);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to retrieve SkillBooks' });
+  }
+});
+
 router.post('/create-skillbook', async (req, res) => {
   const userId = req.userId;
   const { title, focus, parameters } = req.body;
@@ -68,6 +81,63 @@ router.post('/create-skillbook', async (req, res) => {
   }
 });
 
+router.put('/update-skillbook/:skillBookId', async (req, res) => {
+  const { skillBookId } = req.params;
+  const { title, focus, parameters } = req.body;
+
+  try {
+    const updatedSkillBook = await SkillBook.findOneAndUpdate(
+      {_id: skillBookId},
+      { title, focus, parameters },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedSkillBook) {
+      return res.status(404).json({ message: 'Skill Book not found' });
+    }
+
+    res.status(200).json({ message: 'Skill Book updated successfully', updatedSkillBook });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to update Skill Book' });
+  }
+});
+
+router.delete('/remove/:skillBookId', async (req, res) => {
+  const userId = req.userId;
+  const { skillBookId } = req.params;
+
+  if (!userId || !skillBookId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Parâmetros insuficientes. Certifique-se de enviar userId e skillBookId.',
+    });
+  }
+
+  try {
+    const result = await SkillBook.deleteOne({ userId, _id: skillBookId });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'SkillBook não encontrado ou já removido.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'SkillBook removido com sucesso.',
+    });
+  } catch (error) {
+    console.error('Erro ao remover SkillBook:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Ocorreu um erro ao tentar remover o SkillBook.',
+    });
+  }
+});
+
 router.post('/generate-skillbook-tasks/:bookId', async (req, res) => {
   const { bookId } = req.params;
   const userId = req.userId;
@@ -79,9 +149,6 @@ router.post('/generate-skillbook-tasks/:bookId', async (req, res) => {
       { new: true }
     );
 
-    console.log(skillBook)
-    console.log(bookId)
-
     if (!skillBook) {
       return res.status(400).json({ error: 'Tasks for this Skill Book already generated today or Skill Book not found' });
     }
@@ -90,7 +157,8 @@ router.post('/generate-skillbook-tasks/:bookId', async (req, res) => {
 
     const prompt = `
      Gere 5 tarefas diárias para o tema "${skillBook.focus}" com base nos seguintes parâmetros:
-  - Dificuldade: ${skillBook.parameters.difficulty}
+  - Dificuldade: ${skillBook.parameters.difficulty}, isso representa o nivel de compromentimento que o usuario tem com o objetivo, se for facil, ele não tem pressa pra aprender então os desafios podem ser menores.
+  - Habilidade atual do usuário nessa skill: ${skillBook.parameters.level}, as tarefas devem condizir com a habilidade atual do player, se ele for expert, devem ser tarefas avançadas, se for intermediario, e assim por diante.
   - Frequência: ${skillBook.parameters.frequency}, se for diaria, devem ser tarefas rapidas e simples, capazes de serem concluidas em um unico dia, se for semanal, devem ser tarefas mais complicadas e demoradas.
 
   As tarefas devem ser detalhadas e especificas, nada genérico, devem ser realmente passos afim de concluir aquele objetivo. que é ${skillBook.focus}, cada tarefa deve ser um passo importante em direção aquele objetivo.
@@ -115,8 +183,6 @@ router.post('/generate-skillbook-tasks/:bookId', async (req, res) => {
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
     });
-
-    console.log(completion)
 
     const tasks = JSON.parse(completion.choices[0].message.content);
 

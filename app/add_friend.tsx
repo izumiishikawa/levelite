@@ -40,9 +40,7 @@ const AddFriend: React.FC = () => {
         try {
           setIsLoading(true);
           const users = await searchUsers(debouncedQuery); // Chama a função `searchUsers`
-          console.log(users);
           setIsLoading(false);
-          // Adiciona o campo `requestSent` com base em `hasPendingRequest` do backend
           setUsers(users.map((user: User) => ({ ...user, requestSent: user.hasPendingRequest })));
         } catch (error) {
           console.error('Erro ao buscar usuários:', error);

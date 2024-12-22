@@ -74,7 +74,7 @@ const usersSchema = new mongoose.Schema({
     default: false,
   },
 
-  classGeneratedToday: {
+  classGeneratedWeek: {
     type: Boolean,
     default: false,
   },
@@ -144,7 +144,7 @@ const usersSchema = new mongoose.Schema({
   friends: {
     type: [
       {
-        friendId: { type: String }, // `friendId` dos amigos
+        friendId: { type: String },
       }
     ],
     default: [],

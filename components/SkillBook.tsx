@@ -3,8 +3,13 @@ import { View, TouchableOpacity, Image, GestureResponderEvent } from 'react-nati
 import Popover from 'react-native-popover-view';
 import Icon from 'react-native-vector-icons/FontAwesome6';
 import Text from './Text';
+import { removeSkillBook } from '~/services/api';
+import { usePlayerDataStore } from '~/stores/mainStore';
+import { useShallow } from 'zustand/shallow';
+import { router } from 'expo-router';
 
 interface SkillBookProps {
+  id: string;
   title: string;
   level: 'low' | 'medium' | 'high';
   icon: string | number; // Pode ser uma URL ou um `require`
@@ -28,6 +33,7 @@ const intensityLevels = {
 };
 
 export const SkillBook: React.FC<SkillBookProps> = ({
+  id,
   title,
   level,
   icon,
@@ -37,22 +43,43 @@ export const SkillBook: React.FC<SkillBookProps> = ({
   const [showPopover, setShowPopover] = useState(false);
   const touchableRef = useRef<TouchableOpacity>(null);
 
+  const { setUpdateSkillBookSignal } = usePlayerDataStore(
+    useShallow((state) => ({
+      setUpdateSkillBookSignal: state.setUpdateSkillBookSignal,
+    }))
+  );
+
+  const deleteSkillBook = async () => {
+    await removeSkillBook(id);
+    setShowPopover(false);
+    setUpdateSkillBookSignal(Math.random());
+  };
+
   return (
     <>
       <Popover
         isVisible={showPopover}
-        popoverStyle={{ backgroundColor: '#2A2A35', borderRadius: 20 }}
+        popoverStyle={{ backgroundColor: '#2A2A35', borderRadius: 12, width: 120 }}
         onRequestClose={() => setShowPopover(false)}
         from={touchableRef}>
-        <View className="flex flex-row items-center gap-2" style={{ padding: 10 }}>
-          <View style={{ alignItems: 'center' }}>
-            <Image
-              className="rounded-full"
-              source={typeof icon === 'string' ? { uri: icon } : icon}
-              style={{ width: 50, height: 50 }}
-            />
+        <View className="flex w-full flex-col items-center">
+          <View className="flex w-full flex-col gap-1 p-2" style={{ alignItems: 'center' }}>
+            <TouchableOpacity
+              onPress={() => deleteSkillBook()}
+              className="flex w-full flex-row items-center justify-start gap-1 rounded-lg bg-[--background]  px-2">
+              <Icon name="trash" color="#ED6466" size={14} />
+              <Text className="p-2 text-white ">Delete</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                router.push({ pathname: '/create_skillbook', params: { skillBookId: id } });
+                setShowPopover(false);
+              }}
+              className="flex w-full flex-row items-center justify-start gap-1 rounded-lg bg-[--background]  px-2">
+              <Icon name="pen" color="#fff" size={14} />
+              <Text className="p-2 text-white ">Edit</Text>
+            </TouchableOpacity>
           </View>
-          <Text className="text-left text-xs text-white">{description}</Text>
         </View>
       </Popover>
 
@@ -61,12 +88,6 @@ export const SkillBook: React.FC<SkillBookProps> = ({
         onPress={onOpen} // Clique curto chama o onOpen
         onLongPress={() => setShowPopover(true)} // Clique longo abre o Popover
       >
-        <TouchableOpacity className="absolute left-2 top-2 z-50 flex flex-row items-center gap-0 rounded-full bg-[--background] px-2 py-0.5">
-          <Icon name="pen" className="mr-2" size={10} color="#fff" />
-          <Text className="text-xs text-white" black>
-            Edit
-          </Text>
-        </TouchableOpacity>
         <View className="w-30 z-20 flex h-56 max-h-56 min-w-36 max-w-36 flex-col items-center justify-center gap-2 rounded-lg bg-[--accent] px-2 py-4 shadow-lg">
           <Text className="text-md text-center text-white" black>
             {title}

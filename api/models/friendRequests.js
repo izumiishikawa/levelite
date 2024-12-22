@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
 const friendRequestSchema = new mongoose.Schema({
-  from: { type: String, required: true }, // `friendId` de quem enviou a solicitação
-  to: { type: String, required: true },   // `friendId` de quem recebeu a solicitação
-  status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' }, // Estado da solicitação
+  from: { type: String, required: true }, 
+  to: { type: String, required: true }, 
+  status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' }, 
   createdAt: { type: Date, default: Date.now },
 });
 

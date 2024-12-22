@@ -36,6 +36,10 @@ const tasksSchema = new mongoose.Schema({
     required: true,
     default: 50,
   },
+  coinReward: {
+    type: Number,
+    default: 12,
+  },
   status: {
     type: String,
     enum: ['pending', 'completed', 'incomplete'],

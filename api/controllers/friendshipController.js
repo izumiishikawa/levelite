@@ -5,16 +5,13 @@ const authMiddleware = require('../middlewares/auth');
 
 const router = express.Router();
 
-// Middleware de autenticação
 router.use(authMiddleware);
 
-// Função utilitária para manipular erros
 const handleError = (res, error, message = 'Erro no servidor.') => {
   console.error(error);
   res.status(500).send({ error: message });
 };
 
-// Buscar usuário pelo friendId
 router.get('/user/:friendId', async (req, res) => {
   try {
     const { friendId } = req.params;
@@ -35,7 +32,6 @@ router.get('/user/:friendId', async (req, res) => {
   }
 });
 
-// Rota de busca
 router.get('/search', async (req, res) => {
   try {
     const { query } = req.query;
@@ -75,7 +71,6 @@ router.get('/search', async (req, res) => {
   }
 });
 
-// Enviar solicitação de amizade
 router.post('/request', async (req, res) => {
   try {
     const userId = req.userId;
@@ -118,7 +113,6 @@ router.post('/request', async (req, res) => {
   }
 });
 
-// Cancelar solicitação de amizade
 router.post('/cancel', async (req, res) => {
   try {
     const userId = req.userId;
@@ -150,13 +144,10 @@ router.post('/cancel', async (req, res) => {
   }
 });
 
-// Aceitar solicitação de amizade
 router.post('/accept', async (req, res) => {
   try {
     const userId = req.userId;
     const { friendId } = req.body;
-
-    console.log(friendId)
 
     if (!friendId) {
       return res.status(400).send({ error: 'ID do amigo é obrigatório.' });
@@ -190,7 +181,6 @@ router.post('/accept', async (req, res) => {
   }
 });
 
-// Listar amigos
 router.get('/list', async (req, res) => {
   try {
     const userId = req.userId;
@@ -211,7 +201,6 @@ router.get('/list', async (req, res) => {
   }
 });
 
-// Listar solicitações de amizade
 router.get('/requests', async (req, res) => {
   try {
     const userId = req.userId;
@@ -221,10 +210,8 @@ router.get('/requests', async (req, res) => {
       return res.status(404).send({ error: 'Usuário não encontrado.' });
     }
 
-    // Busca todas as solicitações pendentes direcionadas ao usuário atual
     const friendRequests = await FriendRequest.find({ to: currentUser.friendId, status: 'pending' });
 
-    // Para cada solicitação, busca os dados do remetente no banco de dados
     const formattedRequests = await Promise.all(
       friendRequests.map(async request => {
         const user = await User.findOne({ friendId: request.from }).select('username level icon');
@@ -240,7 +227,6 @@ router.get('/requests', async (req, res) => {
       })
     );
 
-    // Remove quaisquer entradas nulas resultantes de usuários inexistentes
     const validRequests = formattedRequests.filter(request => request !== null);
 
     res.status(200).send({ friendRequests: validRequests });

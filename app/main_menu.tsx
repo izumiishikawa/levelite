@@ -84,10 +84,6 @@ const MainMenu: React.FC = () => {
     selectedItemKey.value = itemKey;
     selectedItemOpacity.value = withTiming(1, { duration: 500 });
     selectedItemTranslateY.value = withSpring(0, { stiffness: 50, damping: 12 });
-
-    setTimeout(() => {
-        router.push({pathname: "/attributes"})
-    }, 1000);
   };
 
   useFocusEffect(
@@ -96,14 +92,14 @@ const MainMenu: React.FC = () => {
       sharedOpacity.value = 0;
       foregroundTranslateX.value = -responsiveWidth(200);
       textColorValue.value = 0;
-  
+
       setTimeout(() => {
         sharedTranslateY.value = 0;
         sharedOpacity.value = 1;
         foregroundTranslateX.value = 0;
         textColorValue.value = withTiming(1, { duration: 500 });
       }, 500);
-  
+
       return () => {
         sharedTranslateY.value = initialPosition;
         sharedOpacity.value = 0;
@@ -112,14 +108,27 @@ const MainMenu: React.FC = () => {
       };
     }, [])
   );
-  
 
-  const items = [
-    { id: 'skill', name: 'Item 1', content: <AnimatedRollingNumbers /> },
-    { id: 'attributes', name: 'Item 2', content: <AttributeCircle /> },
-    { id: 'achievements', name: 'Item 3', content: <AnimatedRollingNumbers /> },
-  ];
+  const items = {
+    skill: { path: '/skill' },
+    attributes: { path: '/attributes' },
+    progress: { path: '/progress' },
+    settings: { path: '/options' },
+  };
 
+  useEffect(() => {
+    if (selectedItem) {
+      const selectedPath = items[selectedItem]?.path;
+      if (selectedPath) {
+        setTimeout(() => {
+          router.push({ pathname: selectedPath });
+        }, 1000);
+        setSelectedItem(undefined);
+      } else {
+        console.error('Invalid selected item');
+      }
+    }
+  }, [selectedItem, router]);
   return (
     <View className="flex h-full w-full flex-col items-center justify-center bg-[--background]">
       <Animated.Text
@@ -138,7 +147,7 @@ const MainMenu: React.FC = () => {
           className="absolute bg-[--foreground]"
         />
         <Animated.Text
-          className="z-10 w-full text-center"
+          className="z-50 w-full text-center"
           style={[
             createStyle(50, '-6deg', opacities.progress),
             createTextColorStyle(500),

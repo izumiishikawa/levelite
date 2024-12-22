@@ -84,7 +84,7 @@ const PlayerProfile: React.FC = () => {
           </View>
         </View>
         <Text style={styles.quote} italic>
-          "The Rizz Monarch"
+          "{user.playerTitle}"
         </Text>
 
         {/* Stats Section */}

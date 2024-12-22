@@ -26,13 +26,13 @@ function calculateTaskXpReward(level, difficulty, base_exp) {
 
   switch (difficulty) {
     case 'low':
-      xpPercentage = 0.025; // 5% do XP necessário para o próximo nível
+      xpPercentage = 0.025;
       break;
     case 'medium':
-      xpPercentage = 0.035; // 7.5% do XP necessário para o próximo nível
+      xpPercentage = 0.035; 
       break;
     case 'high':
-      xpPercentage = 0.045; // 10% do XP necessário para o próximo nível
+      xpPercentage = 0.045; 
       break;
     default:
       xpPercentage = 0.005;
@@ -79,19 +79,18 @@ router.post(
   multer(multerConfig).single("file"),
   async (req, res) => {
     try {
-      const userId = req.userId; // ID do usuário autenticado
+      const userId = req.userId;
 
       if (!userId) {
         return res.status(401).send({ error: "Usuário não autenticado." });
       }
 
-      const { filename: key } = req.file; // Nome do arquivo salvo
+      const { filename: key } = req.file; 
 
-      // Atualizar o campo "profileIcon" do usuário
       const updatedUser = await User.findByIdAndUpdate(
         userId,
-        { icon: key }, // Atualiza o ícone de perfil no banco de dados
-        { new: true } // Retorna o documento atualizado
+        { icon: key }, 
+        { new: true }
       );
 
       if (!updatedUser) {
@@ -111,19 +110,18 @@ router.post(
   multer(multerConfig).single("file"),
   async (req, res) => {
     try {
-      const userId = req.userId; // ID do usuário autenticado
+      const userId = req.userId; 
 
       if (!userId) {
         return res.status(401).send({ error: "Usuário não autenticado." });
       }
 
-      const { filename: key } = req.file; // Nome do arquivo salvo
+      const { filename: key } = req.file;
 
-      // Atualizar o campo "profileIcon" do usuário
       const updatedUser = await User.findByIdAndUpdate(
         userId,
-        { banner: key }, // Atualiza o ícone de perfil no banco de dados
-        { new: true } // Retorna o documento atualizado
+        { banner: key }, 
+        { new: true } 
       );
 
       if (!updatedUser) {
@@ -227,7 +225,7 @@ router.patch('/tasks/restore', async (req, res) => {
     if (user) {
       user.currentXP -= xpPenalty;
       user.totalExp -= xpPenalty;
-      user.coins -= 10
+      user.coins -= 12
 
       while (user.xp < 0 && user.level > 1) {
         user.level -= 1;
@@ -357,7 +355,7 @@ router.put('/complete-task', async (req, res) => {
 
     user.currentXP += task.xpReward;
     user.totalExp += task.xpReward;
-    user.coins += 10
+    user.coins += 12
 
     while (user.currentXP >= user.xpForNextLevel) {
       user.currentXP -= user.xpForNextLevel;
@@ -580,6 +578,7 @@ router.post('/generate-tasks', async (req, res) => {
         attribute: task.attribute,
         intensityLevel: task.intensityLevel,
         xpReward,
+        coinReward: 12,
         type: 'dailyQuests',
         status: 'pending',
         dateAssigned: new Date(),

@@ -43,10 +43,16 @@ const SkillBooks: React.FC = () => {
     fetchSkillBooks();
   }, [updateSkillBookSignal]);
 
-  const handleOpenSkillBook = (skillBookId: string, title: string, generatedToday: boolean) => {
+  const handleOpenSkillBook = (
+    skillBookId: string,
+    title: string,
+    difficulty: string,
+    level: string,
+    generatedToday: boolean
+  ) => {
     router.push({
       pathname: '/skillbooks_tasks',
-      params: { skillBookId, title, generatedToday: generatedToday.toString() },
+      params: { skillBookId, title, difficulty, level, generatedToday: generatedToday.toString() },
     });
   };
 
@@ -54,28 +60,39 @@ const SkillBooks: React.FC = () => {
     <SafeAreaView className="flex-1 bg-[--background]">
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={fetchSkillBooks} />}
-      >
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={fetchSkillBooks} />}>
         <View className="p-7">
           <View className="flex flex-row flex-wrap gap-10">
             {isLoading ? (
               <ActivityIndicator size="large" color="#FFF" />
-            ) : (
+            ) : skillBooks.length > 0 ? (
               skillBooks.map((skillBook: any) => (
                 <SkillBook
+                  id={skillBook._id}
                   key={skillBook._id}
                   level={skillBook.parameters.difficulty}
                   title={skillBook.title}
                   icon={require('../../assets/pfp.jpg')} // Ajuste para exibir um ícone ou imagem real
                   description={skillBook.focus}
                   onOpen={() =>
-                    handleOpenSkillBook(skillBook._id, skillBook.title, skillBook.generatedToday)
+                    handleOpenSkillBook(
+                      skillBook._id,
+                      skillBook.title,
+                      skillBook.parameters.difficulty,
+                      skillBook.parameters.level,
+                      skillBook.generatedToday
+                    )
                   }
-                  onDelete={() => {}}
-                  onEdit={() => {}}
-                  onViewInfo={() => {}}
                 />
               ))
+            ) : (
+              // Mensagem épica quando não há Skill Books
+              <View className="flex flex-1 items-center justify-center p-4">
+                <Text className="text-center text-lg text-white">
+                  "Every great hero begins their journey with a single step. Forge your
+                  destiny—create a Skill Book and master the art of greatness!"
+                </Text>
+              </View>
             )}
           </View>
         </View>
@@ -89,8 +106,7 @@ const SkillBooks: React.FC = () => {
           router.push({
             pathname: '/create_skillbook',
           })
-        }
-      >
+        }>
         <Text className="text-2xl font-bold text-white">+</Text>
       </TouchableOpacity>
     </SafeAreaView>

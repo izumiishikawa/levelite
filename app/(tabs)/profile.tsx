@@ -48,11 +48,11 @@ type InventoryItem = {
 const Profile: React.FC = () => {
   const [friendRequests, setFriendRequests] = useState<any>([]);
 
-
-  const { id, icon, banner, setIcon, setBanner, selectedClass, username, profileUpdateSignal } =
+  const { id, playerTitle, icon, banner, setIcon, setBanner, selectedClass, username, profileUpdateSignal } =
     usePlayerDataStore(
       useShallow((state) => ({
         id: state.id,
+        playerTitle: state.playerTitle,
         icon: state.icon,
         banner: state.banner,
         setIcon: state.setIcon,
@@ -107,7 +107,6 @@ const Profile: React.FC = () => {
     try {
       const data = await consultPlayerInventory(playerId);
       const requests = await getFriendRequestsList();
-      console.log(requests);
       setFriendRequests(requests.friendRequests);
       setPlayerInventory(data.items || []);
     } catch (error) {
@@ -141,7 +140,9 @@ const Profile: React.FC = () => {
 
   const handleImagePick = async (type: 'profile' | 'banner', source: 'camera' | 'gallery') => {
     const permissionMethod =
-      source === 'camera' ? ImagePicker.requestCameraPermissionsAsync : ImagePicker.requestMediaLibraryPermissionsAsync;
+      source === 'camera'
+        ? ImagePicker.requestCameraPermissionsAsync
+        : ImagePicker.requestMediaLibraryPermissionsAsync;
     const permissionResult = await permissionMethod();
     if (!permissionResult.granted) {
       Alert.alert('Permissão necessária', 'Você precisa permitir o acesso.');
@@ -150,7 +151,11 @@ const Profile: React.FC = () => {
 
     const result =
       source === 'camera'
-        ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: type === 'profile' ? [1, 1] : [16, 9], quality: 1 })
+        ? await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: type === 'profile' ? [1, 1] : [16, 9],
+            quality: 1,
+          })
         : await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
@@ -195,7 +200,6 @@ const Profile: React.FC = () => {
     getList();
   }, [friendRequests]);
 
-
   const handleAcceptFriendRequest = async (friendId: string) => {
     try {
       const response = await acceptFriendRequest(friendId);
@@ -211,7 +215,11 @@ const Profile: React.FC = () => {
 
   return (
     <ScrollView className="h-full w-full bg-[--background]">
-      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalContainer}>
           <View className="flex w-[90%] flex-col rounded-lg bg-[--background] p-6">
             <Title text={`Change ${modalType === 'profile' ? 'Profile Picture' : 'Banner'}`} />
@@ -241,7 +249,12 @@ const Profile: React.FC = () => {
       <>
         <View className="relative" style={styles.bannerContainer}>
           <View style={styles.overlay} />
-          <TouchableOpacity onPress={() => {setModalVisible(true);setModalType('banner')}} className="absolute right-4 top-4 z-50 flex flex-row items-center gap-0 rounded-full bg-[--background] px-4 py-1">
+          <TouchableOpacity
+            onPress={() => {
+              setModalVisible(true);
+              setModalType('banner');
+            }}
+            className="absolute right-4 top-4 z-50 flex flex-row items-center gap-0 rounded-full bg-[--background] px-4 py-1">
             <Icon name="pen" className="mr-2" size={10} color="#fff" />
             <Text className="text-xs text-white" black>
               Edit
@@ -257,7 +270,11 @@ const Profile: React.FC = () => {
           />
 
           <View style={styles.profileContainer}>
-            <TouchableOpacity onPress={() => {setModalVisible(true);setModalType('profile')}}>
+            <TouchableOpacity
+              onPress={() => {
+                setModalVisible(true);
+                setModalType('profile');
+              }}>
               <Image
                 resizeMethod="resize"
                 source={{
@@ -283,7 +300,7 @@ const Profile: React.FC = () => {
               </Text>
             </View>
           </View>
-          <Text className="italic text-[#B8B8B8]">"The Rizz Monarch"</Text>
+          <Text className="italic text-[#B8B8B8]">"{playerTitle}"</Text>
 
           <View className="mt-2 flex flex-row justify-center gap-2">
             {Object.entries({ focus, vitality, aura }).map(([attribute, value]) => (
@@ -427,46 +444,75 @@ const Profile: React.FC = () => {
 
             <View className="flex w-full flex-col items-center">
               <Text className="mx-auto mb-4 mt-4 italic text-[#B8B8B8]">- Your friends -</Text>
-              <View className="flex w-full flex-row flex-wrap gap-2">
-                {(friends || []).map((friend) => {
-                  return (
-                    <TouchableOpacity
-                      onPress={() =>
-                        router.push({
-                          pathname: '/player_profile',
-                          params: { friendId: friend.friendId },
-                        })
-                      }
-                      key={friend.friendId} // Certifique-se de que cada usuário tenha um ID único
-                      className="flex h-fit flex-col items-center gap-2 rounded-lg bg-[--foreground] px-4 py-6">
-                      <Image
-                        className="h-12 w-12 rounded-full border-2 border-[--accent]"
-                        resizeMethod="resize"
-                        source={{
-                          uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${friend.icon}`,
-                        }}
-                      />
-                      <View className="flex flex-col gap-1">
-                        <Text className="text-center" style={{ color: 'white', fontSize: 16 }} bold>
-                          {friend.username}
-                        </Text>
-                        <View
-                          className="flex flex-row items-center gap-2 rounded-full bg-[--accent] px-2"
-                          style={{ alignSelf: 'flex-start', flexShrink: 1 }}
+
+              {friends && friends.length > 0 ? (
+                <View className="flex w-full flex-row flex-wrap gap-2">
+                  {friends.map((friend) => {
+                    return (
+                      <TouchableOpacity
+                        onPress={() =>
+                          router.push({
+                            pathname: '/player_profile',
+                            params: { friendId: friend.friendId },
+                          })
+                        }
+                        key={friend.friendId} // Certifique-se de que cada usuário tenha um ID único
+                        className="flex h-fit flex-col items-center gap-2 rounded-lg bg-[--foreground] px-4 py-6">
+                        <Image
+                          className="h-12 w-12 rounded-full border-2 border-[--accent]"
+                          resizeMethod="resize"
+                          source={{
+                            uri: `https://delicate-prawn-verbally.ngrok-free.app/files/${friend.icon}`,
+                          }}
                         />
-                        <View
-                          className="flex flex-row items-center gap-2 rounded-full bg-[--accent] px-2 text-center"
-                          style={{ alignSelf: 'flex-start', flexShrink: 1 }}>
-                          <Icon name="fire-flame-curved" size={12} color="#fff" />
-                          <Text className="text-white" bold>
-                            LVL {friend.level}
+                        <View className="flex flex-col gap-1">
+                          <Text
+                            className="text-center"
+                            style={{ color: 'white', fontSize: 16 }}
+                            bold>
+                            {friend.username}
                           </Text>
+                          <View
+                            className="flex flex-row items-center gap-2 rounded-full bg-[--accent] px-2"
+                            style={{ alignSelf: 'flex-start', flexShrink: 1 }}
+                          />
+                          <View
+                            className="flex flex-row items-center gap-2 rounded-full bg-[--accent] px-2 text-center"
+                            style={{ alignSelf: 'flex-start', flexShrink: 1 }}>
+                            <Icon name="fire-flame-curved" size={12} color="#fff" />
+                            <Text className="text-white" bold>
+                              LVL {friend.level}
+                            </Text>
+                          </View>
                         </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ) : (
+                // Mensagem épica quando não há amigos
+                <View className="flex w-full flex-1 items-center justify-center p-4">
+                  <Text className="text-center text-white">
+                    The greatest journeys are never walked alone. Invite a friend and conquer the
+                    world together!
+                  </Text>
+                  <View className='w-full'>
+                  <TouchableOpacity
+                    onPress={() =>
+                      router.push({
+                        pathname: '/add_friend',
+                      })
+                    }
+                    className="mt-5 flex w-[100%] flex-row items-center justify-center rounded-lg bg-[--foreground] p-3">
+                    <Text black className="text-white">
+                      <Icon name="user-plus" size={15} className="mr-2" /> Add friend
+                    </Text>
+                  </TouchableOpacity>
+
+                  </View>
+                
+                </View>
+              )}
             </View>
 
             <View className="mb-80 flex w-full flex-col items-center">

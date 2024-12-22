@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { consultPlayerStatus } from '~/services/api';
 import {
   useAttributesStore,
+  useAuthStore,
   useCoinsAndStreakStore,
   useFriendshipStore,
   useHealthAndManaStore,
@@ -35,7 +36,7 @@ import {
   Inter_900Black,
 } from '@expo-google-fonts/inter';
 
-import {Poppins_900Black} from "@expo-google-fonts/poppins"
+import { Poppins_900Black } from '@expo-google-fonts/poppins';
 
 import { OnboardingScreens } from '../components/Onboarding/OnboardingScreens';
 import * as SplashScreen from 'expo-splash-screen';
@@ -44,6 +45,7 @@ import Text from '~/components/Text';
 import HimariScreen from '~/components/Onboarding/HimariIntroduction';
 import AuthScreen from './authscreen';
 import { SnackBarProvider } from '~/contexts/SnackBarContext';
+import { useShallow } from 'zustand/shallow';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -53,6 +55,10 @@ export default function RootLayout() {
   useInitialAndroidBarSync();
   const { colorScheme } = useColorScheme();
   const [haveToken, setHaveToken] = useState<boolean>(true);
+  const { isLogged, setIsLogged } = useAuthStore(
+    useShallow((state) => ({ isLogged: state.isLogged, setIsLogged: state.setIsLogged }))
+  );
+
   const [onboarded, setOnboarded] = useState<boolean>();
   const [showHimari, setShowHimari] = useState(false);
 
@@ -61,7 +67,7 @@ export default function RootLayout() {
       const userToken = await AsyncStorage.getItem('userToken');
 
       if (userToken) {
-        setHaveToken(true);
+        setIsLogged(true);
         const storedPlayerData = await consultPlayerStatus();
         setOnboarded(storedPlayerData.onboarded);
 
@@ -72,6 +78,8 @@ export default function RootLayout() {
             banner,
             onboarded,
             generatedToday,
+            classGeneratedWeek,
+            playerTitle,
             weight,
             height,
             username,
@@ -96,6 +104,8 @@ export default function RootLayout() {
           // Atualizar stores diretamente
           const playerStore = usePlayerDataStore.getState();
           playerStore.setId(_id);
+          playerStore.setPlayerTitle(playerTitle);
+          playerStore.setClassGeneratedWeek(classGeneratedWeek);
           playerStore.setGeneratedToday(generatedToday);
           playerStore.setSelectedClass(selectedClass);
           playerStore.setUsername(username);
@@ -135,7 +145,7 @@ export default function RootLayout() {
           healthAndManaStore.setMaxMana(maxMana);
         }
       } else {
-        setHaveToken(false);
+        setIsLogged(false);
       }
     } catch (err) {
       console.error('Erro ao buscar dados do jogador:', err);
@@ -194,7 +204,7 @@ export default function RootLayout() {
     );
   }
 
-  if (!haveToken) {
+  if (!isLogged) {
     return <AuthScreen onComplete={() => initializePlayerData()} />;
   }
 
@@ -203,52 +213,60 @@ export default function RootLayout() {
   }
 
   return (
-      <SnackBarProvider>
-        <StatusBar style="light" />
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <BottomSheetModalProvider>
-            <ActionSheetProvider>
-              <NavThemeProvider value={NAV_THEME[colorScheme]}>
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="(tabs)" />
-                  <Stack.Screen
-                    name="create_task"
-                    options={{ presentation: 'transparentModal', animation: 'fade_from_bottom' }}
-                  />
-                  <Stack.Screen
-                    name="shop_item"
-                    options={{ presentation: 'transparentModal', animation: 'fade' }}
-                  />
-                  <Stack.Screen
-                    name="profile_item"
-                    options={{ presentation: 'transparentModal', animation: 'fade' }}
-                  />
-                  <Stack.Screen
-                    name="create_skillbook"
-                    options={{ presentation: 'transparentModal', animation: 'fade_from_bottom' }}
-                  />
-                  <Stack.Screen
-                    name="add_friend"
-                    options={{ presentation: 'transparentModal', animation: 'ios' }}
-                  />
-                  <Stack.Screen
-                    name="player_profile"
-                    options={{ presentation: 'transparentModal', animation: 'ios' }}
-                  />
-                  <Stack.Screen
-                    name="main_menu"
-                    options={{ presentation: 'transparentModal', animation: 'fade' }}
-                  />
-                    <Stack.Screen
-                    name="attributes"
-                    options={{ presentation: 'transparentModal', animation: 'ios' }}
-                  />
-                </Stack>
-                {showHimari && <HimariScreen onNext={handleHimariNext} />}
-              </NavThemeProvider>
-            </ActionSheetProvider>
-          </BottomSheetModalProvider>
-        </GestureHandlerRootView>
-      </SnackBarProvider>
+    <SnackBarProvider>
+      <StatusBar style="light" />
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <BottomSheetModalProvider>
+          <ActionSheetProvider>
+            <NavThemeProvider value={NAV_THEME[colorScheme]}>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen
+                  name="create_task"
+                  options={{ presentation: 'transparentModal', animation: 'fade_from_bottom' }}
+                />
+                <Stack.Screen
+                  name="shop_item"
+                  options={{ presentation: 'transparentModal', animation: 'fade' }}
+                />
+                <Stack.Screen
+                  name="profile_item"
+                  options={{ presentation: 'transparentModal', animation: 'fade' }}
+                />
+                <Stack.Screen
+                  name="create_skillbook"
+                  options={{ presentation: 'transparentModal', animation: 'fade_from_bottom' }}
+                />
+                <Stack.Screen
+                  name="add_friend"
+                  options={{ presentation: 'transparentModal', animation: 'ios' }}
+                />
+                <Stack.Screen
+                  name="player_profile"
+                  options={{ presentation: 'transparentModal', animation: 'ios' }}
+                />
+                <Stack.Screen
+                  name="main_menu"
+                  options={{ presentation: 'transparentModal', animation: 'fade' }}
+                />
+                <Stack.Screen
+                  name="attributes"
+                  options={{ presentation: 'transparentModal', animation: 'ios' }}
+                />
+                <Stack.Screen
+                  name="progress"
+                  options={{ presentation: 'transparentModal', animation: 'ios' }}
+                />
+                <Stack.Screen
+                  name="options"
+                  options={{ presentation: 'transparentModal', animation: 'ios' }}
+                />
+              </Stack>
+              {showHimari && <HimariScreen onNext={handleHimariNext} />}
+            </NavThemeProvider>
+          </ActionSheetProvider>
+        </BottomSheetModalProvider>
+      </GestureHandlerRootView>
+    </SnackBarProvider>
   );
 }

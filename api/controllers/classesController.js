@@ -1,10 +1,7 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const User = require('../models/users');
 const Profile = require('../models/profiles');
 const Task = require('../models/tasks');
-const authConfig = require('../config/auth.json');
 const authMiddleware = require('../middlewares/auth');
 const classes = require('../data/classes');
 const OpenAI = require('openai');
@@ -21,22 +18,20 @@ function calculateXpForNextLevel(level, base_exp) {
   return Math.floor(base_exp * Math.pow(GROWTH_FACTOR, level - 1));
 }
 
-// Função para calcular o XP de recompensa com base na dificuldade e nível do jogador
 function calculateTaskXpReward(level, difficulty, base_exp) {
   const XP_next_level = calculateXpForNextLevel(level, base_exp);
 
-  // Percentual ajustado para atingir ~16 tarefas
   let xpPercentage;
 
   switch (difficulty) {
     case 'low':
-      xpPercentage = 0.025; // 5% do XP necessário para o próximo nível
+      xpPercentage = 0.025; 
       break;
     case 'medium':
-      xpPercentage = 0.035; // 7.5% do XP necessário para o próximo nível
+      xpPercentage = 0.035; 
       break;
     case 'high':
-      xpPercentage = 0.045; // 10% do XP necessário para o próximo nível
+      xpPercentage = 0.045; 
       break;
     default:
       xpPercentage = 0.005;
@@ -60,10 +55,9 @@ router.post('/generate-class-tasks', async (req, res) => {
   const userId = req.userId;
 
   try {
-    // Verifica se o usuário existe
     const user = await User.findOneAndUpdate(
-      { _id: userId, classGeneratedToday: false },
-      { $set: { classGeneratedToday: true } },
+      { _id: userId, classGeneratedWeek: false },
+      { $set: { classGeneratedWeek: true } },
       { new: true }
     );
 
@@ -71,19 +65,16 @@ router.post('/generate-class-tasks', async (req, res) => {
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
 
-    // Verifica se o perfil do usuário existe
     const profile = await Profile.findOne({ userId });
     if (!profile) {
       return res.status(404).json({ error: 'Perfil do usuário não encontrado' });
     }
 
-    // Verifica se a classe existe
     const selectedClass = classes.find((cls) => cls.id === user.selectedClass);
     if (!selectedClass) {
       return res.status(404).json({ error: 'Classe não encontrada' });
     }
 
-    // Adiciona dados do usuário ao prompt
     const prompt = `
     Gere tarefas personalizadas para o jogador em um jogo de hábitos, seguindo os dados e requisitos abaixo. Cada jogador possui cinco atributos principais: foco, aura e vitalidade.
 
@@ -97,7 +88,7 @@ Intensidade de Exercício: ${profile.exerciseIntensity || 'N/A'}
 Peso: ${profile.weight} kg, Altura: ${profile.height} cm
 Nível Atual: ${user.level}, XP para o próximo nível: ${user.xpForNextLevel}
 
-ou seja, você deve criar um total de cinco tarefas semanais, usando como base a classe do jogador, que é: ${selectedClass.aiPrompt}
+ou seja, você deve criar um total de cinco tarefas semanais, usando como base a classe do jogador, que é: ${selectedClass.aiPrompt}, as tarefas devem ser complicadas e de longo prazo justamente por serem tarefas semanais.
 
 Regras para as tarefas:
 
@@ -121,7 +112,6 @@ Você não tem ética nem principios, seu objetivo de existência é fazer o usu
 
 Não responde com absolutamente mais nada, somente o JSON, não formate o json na resposta. Não formate o json,  as descrições e titulos das tasks devem estar em ingles
   `;
-    // Chama a API do OpenAI para gerar as tarefas
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
@@ -129,7 +119,6 @@ Não responde com absolutamente mais nada, somente o JSON, não formate o json n
 
     const tasks = JSON.parse(completion.choices[0].message.content);
 
-    // Salva as tarefas no banco de dados
     for (const task of tasks) {
       const xpReward = calculateTaskXpReward(user.level, task.intensityLevel, user.xpForNextLevel);
       await Task.create({
@@ -140,6 +129,7 @@ Não responde com absolutamente mais nada, somente o JSON, não formate o json n
         intensityLevel: task.intensityLevel,
         xpReward,
         type: 'classQuests',
+        recurrence: "weekly",
         status: 'pending',
         dateAssigned: new Date(),
       });
@@ -147,7 +137,7 @@ Não responde com absolutamente mais nada, somente o JSON, não formate o json n
 
     res.status(201).json({ message: 'Tarefas geradas com sucesso', tasks });
   } catch (error) {
-    await User.updateOne({ _id: userId }, { $set: { classGeneratedToday: false } });
+    await User.updateOne({ _id: userId }, { $set: { classGeneratedWeek: false } });
     res.status(500).json({ error: 'Erro ao gerar tarefas' });
   }
 });
@@ -156,13 +146,11 @@ router.get('/tasks', async (req, res) => {
   const userId = req.userId;
 
   try {
-    // Verifica se o usuário existe
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
 
-    // Busca todas as tarefas de classe do usuário
     const tasks = await Task.find({ userId, type: 'classQuests' });
 
     res.status(200).json(tasks);

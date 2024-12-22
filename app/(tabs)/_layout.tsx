@@ -136,6 +136,7 @@ export default function TabLayout() {
         tabBar={(props) => <AnimatedTabBar {...props} />}
         screenOptions={{
           headerStyle: styles.headerStyle,
+          lazy: true,
           headerLeft: () => <HeaderLeft selectedClass={currentClass} />,
           headerRight: () => (
             <HeaderRight

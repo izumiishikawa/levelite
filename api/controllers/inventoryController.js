@@ -70,9 +70,9 @@ router.post('/:userId/buy', async (req, res) => {
 
     const existingItem = inventory.items.find((item) => item.itemId.equals(itemData._id));
     if (existingItem) {
-      existingItem.quantity += 1; // Incrementa a quantidade existente
+      existingItem.quantity += 1; 
     } else {
-      inventory.items.push({ itemId: itemData._id, quantity: 1 }); // Adiciona o item ao inventário
+      inventory.items.push({ itemId: itemData._id, quantity: 1 });
     }
 
     user.coins -= itemData.buyPrice;
@@ -122,7 +122,7 @@ router.post('/:userId/use', async (req, res) => {
     if (item.quantity > 1) {
       inventory.items[itemIndex].quantity -= 1;
     } else {
-      inventory.items.splice(itemIndex, 1); // Remove o item se a quantidade for 1
+      inventory.items.splice(itemIndex, 1);
     }
 
     await inventory.save();
@@ -138,14 +138,13 @@ router.post('/:userId/use', async (req, res) => {
 router.post('/:userId/add', async (req, res) => {
   try {
     const { userId } = req.params;
-    const { itemId, quantity = 1 } = req.body; // Define um valor padrão de 1 para quantity
+    const { itemId, quantity = 1 } = req.body; 
 
     const inventory = await Inventory.findOne({ userId });
     if (!inventory) {
       return res.status(404).json({ message: 'Inventário não encontrado.' });
     }
 
-    // Verificar o total de slots ocupados
     const totalSlotsUsed = inventory.items.length;
     if (totalSlotsUsed >= MAX_SLOTS) {
       return res
@@ -153,19 +152,15 @@ router.post('/:userId/add', async (req, res) => {
         .json({ message: 'Inventário cheio. Não é possível adicionar mais itens.' });
     }
 
-    // Buscar o item no banco de dados
     const itemData = await ItemData.findById(itemId);
     if (!itemData) {
       return res.status(404).json({ message: 'Item não encontrado no jogo.' });
     }
 
-    // Verificar se o item já está no inventário
     const existingItem = inventory.items.find((item) => item.itemId.equals(itemData._id));
     if (existingItem) {
-      // Incrementa a quantidade existente
       existingItem.quantity += quantity;
     } else {
-      // Adiciona um novo item ao inventário
       inventory.items.push({ itemId: itemData._id, quantity });
     }
 

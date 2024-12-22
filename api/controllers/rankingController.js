@@ -1,13 +1,7 @@
 // Ranking Global
 const express = require('express');
 const User = require('../models/users');
-const Profile = require('../models/profiles');
-const Task = require('../models/tasks');
-const OpenAI = require('openai');
-const secret = require('../data/secret.json');
 const authMiddleware = require('../middlewares/auth');
-const multer = require('multer');
-const multerConfig = require('../config/multer');
 
 router = express.Router();
 
@@ -17,7 +11,6 @@ router.get('/global', async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
 
-    // Busca todos os usuários e ordena
     const users = await User.find({})
       .sort({ totalExp: -1, currentRank: -1 })
       .select('username friendId totalExp currentRank level icon')
@@ -40,20 +33,17 @@ router.get('/global', async (req, res) => {
   }
 });
 
-// Ranking Entre Amigos
 router.get('/friends', async (req, res) => {
   try {
     const userId = req.userId;
     const { page = 1, limit = 10 } = req.query;
 
-    // Busca o usuário autenticado
     const currentUser = await User.findById(userId);
 
     if (!currentUser) {
       return res.status(404).send({ error: 'Usuário não encontrado.' });
     }
 
-    // Filtra apenas os amigos do usuário
     const friendIds = currentUser.friends.map((friend) => friend.friendId);
 
     const friends = await User.find({ friendId: { $in: friendIds } })

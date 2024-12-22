@@ -1,5 +1,12 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { View, ActivityIndicator, Image, Animated, InteractionManager, Vibration } from 'react-native';
+import {
+  View,
+  ActivityIndicator,
+  Image,
+  Animated,
+  InteractionManager,
+  Vibration,
+} from 'react-native';
 import Text from '../Text';
 import { TaskCard } from '../TaskCard';
 import { AppUserContext } from '~/contexts/AppUserContext';
@@ -14,6 +21,7 @@ import {
   deleteTask,
   getSkillBookTasks,
   generateSkillBookTasks,
+  generateClassTasks,
 } from '~/services/api';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AnimatedRollingNumbers from '../AnimatedRolling';
@@ -59,14 +67,16 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
     }))
   );
 
-  const { id, generatedToday, updateTasksSignal, setUpdateSkillBookSignal } = usePlayerDataStore(
-    useShallow((state) => ({
-      id: state.id,
-      generatedToday: state.generatedToday,
-      updateTasksSignal: state.updateTasksSignal,
-      setUpdateSkillBookSignal: state.setUpdateSkillBookSignal,
-    }))
-  );
+  const { id, generatedToday, classGeneratedWeek, updateTasksSignal, setUpdateSkillBookSignal } =
+    usePlayerDataStore(
+      useShallow((state) => ({
+        id: state.id,
+        generatedToday: state.generatedToday,
+        classGeneratedWeek: state.classGeneratedWeek,
+        updateTasksSignal: state.updateTasksSignal,
+        setUpdateSkillBookSignal: state.setUpdateSkillBookSignal,
+      }))
+    );
 
   const { inPenaltyZone } = usePenaltyZoneStore(
     useShallow((state) => ({ inPenaltyZone: state.inPenaltyZone }))
@@ -107,25 +117,24 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
 
   const fetchTasks = async () => {
     try {
-      if (!id || generatedToday === null) {
+      if (!id || generatedToday === null || classGeneratedWeek === null) {
         console.warn('ID ou generatedToday não estão prontos.');
         return;
       }
-  
+
       let tasks = [];
-  
+
       if (taskType === 'daily') {
         if (inPenaltyZone) {
           tasks = await consultPenaltyTasks(id);
           tasks = tasks.filter((task: any) => task.type === 'penaltyTask');
         } else {
-          console.log(generatedToday)
           if (!generatedToday) {
             setIsLoading(true);
             await generateAiTasks(id);
             setIsLoading(false);
           }
-  
+
           tasks = await consultPendingTasks(id);
           tasks = tasks.filter((task: any) => task.type === 'dailyQuests');
         }
@@ -133,6 +142,12 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
         tasks = await consultPendingTasks(id);
         tasks = tasks.filter((task: any) => task.type === 'userTask');
       } else if (taskType === 'class') {
+        if (!classGeneratedWeek) {
+          setIsLoading(true);
+          await generateClassTasks(id);
+          setIsLoading(false);
+        }
+
         tasks = await consultClassTasks(id);
         tasks = tasks.filter((task: any) => task.type === 'classQuests');
       } else if (taskType === 'skillbook' && skillBookId) {
@@ -141,19 +156,19 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
           if (currentTasks.length === 0) {
             await generateSkillBookTasks(skillBookId);
           }
-          
-          setUpdateSkillBookSignal(Math.random())
+
+          setUpdateSkillBookSignal(Math.random());
           setIsLoading(false);
         }
-  
+
         tasks = await getSkillBookTasks(skillBookId);
       }
-  
+
       setCurrentTasks(tasks);
-  
+
       const initialAnimations = tasks.map(() => new Animated.Value(-500));
       setAnimations(initialAnimations);
-  
+
       initialAnimations.forEach((animation: Animated.Value | Animated.ValueXY, index: number) => {
         Animated.timing(animation, {
           toValue: 0,
@@ -168,13 +183,13 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
       setIsLoading(false);
     }
   };
-  
+
   useEffect(() => {
     if (!isLoading) {
       fetchTasks();
     }
   }, [taskType, id, generatedToday, updateTasksSignal, refreshSignal]);
-  
+
   const completeCurrentTask = (taskId: string) => {
     // Colocar lógica que não precisa bloquear a thread principal em um handler
     InteractionManager.runAfterInteractions(async () => {
@@ -194,6 +209,7 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
         setCurrentXP(data.user.currentXP);
         setXpForNextLevel(data.user.xpForNextLevel);
         setStreak(data.user.streak);
+        setCoins(data.user.coins);
       } catch (err) {
         showSnackBar('An error have ocurred.');
       } finally {
@@ -239,7 +255,7 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
             className="h-5 w-5"
           />
           <Text className="text-white" black>
-            + {coins || 0}
+            + {coins}
           </Text>
         </View>
       </View>
@@ -308,7 +324,7 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
               {isLoading && (
                 <View className="mt-20 flex w-full flex-col items-center">
                   <Text className="mb-5 text-white" bold>
-                    Generating Daily Tasks..
+                    Generating Tasks..
                   </Text>
                   <LottieView
                     source={require('../../assets/loading4.json')} // Substitua pelo arquivo JSON da animação
@@ -320,6 +336,13 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
               )}
 
               <View className="mb-10 mt-20 flex w-[95%] flex-col gap-4">
+                {taskType === 'class' && (
+                  <Text className="mx-auto mb-4 w-[90%] text-center text-white">
+                    Weekly class challenges, forge your mastery and rise as the legend you were born
+                    to be!
+                  </Text>
+                )}
+
                 {(currentTasks || []).length > 0
                   ? (currentTasks || []).map((taskInfo: any, index: number) => (
                       <Animated.View
@@ -333,7 +356,11 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
                           intensityLevel={taskInfo.intensityLevel}
                           status={taskInfo.status}
                           onComplete={() =>
-                            handleTaskCompletion(taskInfo._id, taskInfo.xpReward, taskInfo.coins)
+                            handleTaskCompletion(
+                              taskInfo._id,
+                              taskInfo.xpReward,
+                              taskInfo.coinReward
+                            )
                           }
                           onRestore={() => handleTaskRestoring(taskInfo._id)}
                           onDelete={() => handleTaskRemoval(taskInfo._id)}

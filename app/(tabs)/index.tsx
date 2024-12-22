@@ -23,8 +23,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const Index: React.FC = () => {
   const [refreshSignal, setRefreshSignal] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { id, generatedToday } = usePlayerDataStore(
-    useShallow((state) => ({ id: state.id, generatedToday: state.generatedToday }))
+  const { id, generatedToday, classGeneratedWeek } = usePlayerDataStore(
+    useShallow((state) => ({ id: state.id, generatedToday: state.generatedToday, classGeneratedWeek: state.classGeneratedWeek }))
   );
 
   const { inPenaltyZone } = usePenaltyZoneStore(
@@ -42,6 +42,7 @@ const Index: React.FC = () => {
         _id,
         onboarded,
         generatedToday,
+        classGeneratedWeek,
         weight,
         height,
         username,
@@ -62,10 +63,10 @@ const Index: React.FC = () => {
         maxMana,
       } = storedPlayerData;
 
-      // Atualizar stores diretamente
       const playerStore = usePlayerDataStore.getState();
       playerStore.setId(_id);
       playerStore.setGeneratedToday(generatedToday);
+      playerStore.setClassGeneratedWeek(classGeneratedWeek)
       playerStore.setSelectedClass(selectedClass);
       playerStore.setUsername(username);
       playerStore.setWeight(weight);
@@ -118,8 +119,7 @@ const Index: React.FC = () => {
     );
   }, [refreshSignal, inPenaltyZone, id]);
 
-  const insets = useSafeAreaInsets(); // Obtem os espaçamentos seguros
-
+  const insets = useSafeAreaInsets(); 
   if (!id) {
     return (
       <View className="flex-1 items-center justify-center bg-[--background]">
@@ -128,7 +128,7 @@ const Index: React.FC = () => {
             Loading..
           </Text>
           <LottieView
-            source={require('../../assets/loading4.json')} // Substitua pelo arquivo JSON da animação
+            source={require('../../assets/loading4.json')} 
             autoPlay
             loop
             style={{ width: 100, height: 100 }}
@@ -140,7 +140,6 @@ const Index: React.FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-[--background]">
-      {/* Conteúdo principal */}
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}>
@@ -153,7 +152,6 @@ const Index: React.FC = () => {
         </View>
       </ScrollView>
 
-      {/* Botão de criar tarefa */}
       {!inPenaltyZone && (
         <TouchableOpacity
           className="absolute right-6 h-14 w-14 items-center justify-center rounded-full bg-[--accent] shadow-lg"

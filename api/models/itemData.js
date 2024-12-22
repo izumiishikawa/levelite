@@ -4,7 +4,7 @@ const itemDataSchema = new mongoose.Schema({
   name: { 
     type: String, 
     required: true, 
-    unique: true // Nome único para evitar duplicidades
+    unique: true 
   },
   description: { 
     type: String 
@@ -36,9 +36,9 @@ const itemDataSchema = new mongoose.Schema({
       'stamina_boost', 
       'damage_boost', 
       'defense_boost',
-      'escape_penalty', // Novo efeito: Escapar da zona de penalidade
-      'max_health_increase', // Novo efeito: Aumentar a vida máxima
-      'add_gold', // Novo efeito: Adicionar ouro
+      'escape_penalty',
+      'max_health_increase', 
+      'add_gold',
       'level_up'
     ], 
     required: true 
