@@ -6,7 +6,8 @@ import { GeneralLevel } from '~/components/GeneralLevel';
 import { Calendar } from '~/components/Calendar';
 import { TaskWrapper } from '~/components/DailyTasks/TaskWrapper';
 import { AppUserContext } from '~/contexts/AppUserContext';
-import { consultPlayerStatus } from '~/services/api';
+import { consultPlayerStatus, setGeneratedToday } from '~/services/api';
+import Icon from "react-native-vector-icons/FontAwesome6"
 import { useRouter } from 'expo-router';
 import {
   useAttributesStore,
@@ -23,19 +24,26 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const Index: React.FC = () => {
   const [refreshSignal, setRefreshSignal] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { id, generatedToday, classGeneratedWeek } = usePlayerDataStore(
-    useShallow((state) => ({ id: state.id, generatedToday: state.generatedToday, classGeneratedWeek: state.classGeneratedWeek }))
+  const [taskView, setTaskView] = useState<'s-system' | 'custom'>('s-system');
+  const { id, generatedToday, setGeneratedToday, classGeneratedWeek } = usePlayerDataStore(
+    useShallow((state) => ({
+      id: state.id,
+      generatedToday: state.generatedToday,
+      setGeneratedToday: state.setGeneratedToday,
+      classGeneratedWeek: state.classGeneratedWeek,
+    }))
   );
 
-  const { inPenaltyZone } = usePenaltyZoneStore(
-    useShallow((state) => ({ inPenaltyZone: state.inPenaltyZone }))
+  const { inPenaltyZone, setInPenaltyZone } = usePenaltyZoneStore(
+    useShallow((state) => ({ inPenaltyZone: state.inPenaltyZone, setInPenaltyZone: state.setInPenaltyZone }))
   );
 
   const router = useRouter();
 
   const handleRefresh = useCallback(async () => {
-    setRefreshSignal(refreshSignal + 1);
     const storedPlayerData = await consultPlayerStatus();
+    setGeneratedToday(true)
+    setInPenaltyZone(false);
 
     if (storedPlayerData) {
       const {
@@ -66,7 +74,7 @@ const Index: React.FC = () => {
       const playerStore = usePlayerDataStore.getState();
       playerStore.setId(_id);
       playerStore.setGeneratedToday(generatedToday);
-      playerStore.setClassGeneratedWeek(classGeneratedWeek)
+      playerStore.setClassGeneratedWeek(classGeneratedWeek);
       playerStore.setSelectedClass(selectedClass);
       playerStore.setUsername(username);
       playerStore.setWeight(weight);
@@ -98,28 +106,29 @@ const Index: React.FC = () => {
       healthAndManaStore.setMaxHealth(maxHealth);
       healthAndManaStore.setMana(mana);
       healthAndManaStore.setMaxMana(maxMana);
+
+      setRefreshSignal(Math.random());
     }
-  }, []);
+  }, [taskView]);
 
   const renderTaskWrappers = useMemo(() => {
     if (!id) {
       return null;
     }
 
-    return (
-      <>
-        <TaskWrapper refreshSignal={refreshSignal} taskType="daily" />
-        {!inPenaltyZone && (
-          <>
-            <TaskWrapper refreshSignal={refreshSignal} taskType="class" />
-            <TaskWrapper refreshSignal={refreshSignal} taskType="user" />
-          </>
-        )}
-      </>
-    );
-  }, [refreshSignal, inPenaltyZone, id]);
+    if (taskView === 's-system') {
+      return (
+        <>
+          <TaskWrapper refreshSignal={refreshSignal} taskType="daily" />
+          {!inPenaltyZone && <TaskWrapper refreshSignal={refreshSignal} taskType="class" />}
+        </>
+      );
+    } else if (taskView === 'custom') {
+      return <TaskWrapper refreshSignal={refreshSignal} taskType="user" />;
+    }
+  }, [refreshSignal, inPenaltyZone, id, taskView]);
 
-  const insets = useSafeAreaInsets(); 
+  const insets = useSafeAreaInsets();
   if (!id) {
     return (
       <View className="flex-1 items-center justify-center bg-[--background]">
@@ -128,7 +137,7 @@ const Index: React.FC = () => {
             Loading..
           </Text>
           <LottieView
-            source={require('../../assets/loading4.json')} 
+            source={require('../../assets/loading4.json')}
             autoPlay
             loop
             style={{ width: 100, height: 100 }}
@@ -146,23 +155,69 @@ const Index: React.FC = () => {
         <View className="h-full">
           <Container>
             <Calendar />
+            <View>
             <GeneralLevel />
+
+            <View
+          className="mx-auto absolute right-8 bottom-8 border-2 rounded-full border-[--foreground] z-50"
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+          }}>
+          <TouchableOpacity
+            className="rounded-l-full px-2 py-0.5"
+            style={{ backgroundColor: taskView === 's-system' ? '#996DFF' : '#17171C' }}
+            onPress={() => setTaskView('s-system')}>
+            <Text
+              style={{ color: taskView === 's-system' ? '#fff' : '#B8B8B8', fontSize: 10 }}
+              bold>
+              S-System
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="rounded-r-full px-2 py-0.5"
+            style={{ backgroundColor: taskView === 'custom' ? '#996DFF' : '#17171C' }}
+            onPress={() => setTaskView('custom')}>
+            <Text
+              style={{ color: taskView === 'custom' ? '#fff' : '#B8B8B8', fontSize: 10 }}
+              bold>
+              Custom
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+            </View>
+
             {renderTaskWrappers}
           </Container>
         </View>
       </ScrollView>
 
-      {!inPenaltyZone && (
+      {!inPenaltyZone && taskView === "s-system" && (
         <TouchableOpacity
           className="absolute right-6 h-14 w-14 items-center justify-center rounded-full bg-[--accent] shadow-lg"
-          style={{ bottom: insets.bottom + 86 }} // Adiciona margem inferior com base no SafeArea
+          style={{ bottom: insets.bottom + 86 }}
+          onPress={() =>
+            router.push({
+              pathname: '/roadmap',
+              params: { userId: id },
+            })
+          }>
+          <Text className="text-2xl font-bold text-white"><Icon name='dungeon' size={30} /></Text>
+        </TouchableOpacity>
+      )}
+
+      {!inPenaltyZone && taskView === "custom" && (
+        <TouchableOpacity
+          className="absolute right-6 h-14 w-14 items-center justify-center rounded-full bg-[--accent] shadow-lg"
+          style={{ bottom: insets.bottom + 86 }}
           onPress={() =>
             router.push({
               pathname: '/create_task',
               params: { userId: id },
             })
           }>
-          <Text className="text-2xl font-bold text-white">+</Text>
+          <Text className="text-2xl font-bold text-white"><Icon name='square-plus' size={30} /></Text>
         </TouchableOpacity>
       )}
     </SafeAreaView>

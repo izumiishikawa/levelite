@@ -16,7 +16,7 @@ const tasksSchema = new mongoose.Schema({
   },
   image: {
     type: String,
-    default: ''
+    default: '',
   },
   attribute: {
     type: String,
@@ -24,7 +24,7 @@ const tasksSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ["userTask", "aiTask", "dailyQuests", "classQuests", "penaltyTask"]
+    enum: ['userTask', 'aiTask', 'dailyQuests', 'classQuests', 'penaltyTask'],
   },
   intensityLevel: {
     type: String,
@@ -55,10 +55,25 @@ const tasksSchema = new mongoose.Schema({
   },
   recurrence: {
     type: String,
-    enum: ['one-time', 'daily', 'weekly', 'monthly'],
+    enum: ['one-time', 'daily', 'weekly', 'monthly', 'custom'],
     default: 'one-time',
   },
+  specificDays: {
+    type: [Number], // Array de números representando dias da semana (0-6)
+    default: [], // Usado apenas se recurrence for 'custom'
+    validate: {
+      validator: function (days) {
+        // Valida que os valores estão no intervalo correto
+        return days.every(day => day >= 0 && day <= 6);
+      },
+      message: 'Os dias específicos devem estar entre 0 (domingo) e 6 (sábado).',
+    },
+  },
   skillBookId: { type: mongoose.Schema.Types.ObjectId, ref: 'SkillBook', default: null },
+  completedDates: {
+    type: [String],
+    default: [],
+  },
 });
 
 module.exports = mongoose.model('Task', tasksSchema);

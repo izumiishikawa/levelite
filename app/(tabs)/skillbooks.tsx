@@ -69,6 +69,7 @@ const SkillBooks: React.FC = () => {
               skillBooks.map((skillBook: any) => (
                 <SkillBook
                   id={skillBook._id}
+                  color={skillBook.color}
                   key={skillBook._id}
                   level={skillBook.parameters.difficulty}
                   title={skillBook.title}
@@ -88,9 +89,9 @@ const SkillBooks: React.FC = () => {
             ) : (
               // Mensagem épica quando não há Skill Books
               <View className="flex flex-1 items-center justify-center p-4">
-                <Text className="text-center text-lg text-white">
-                  "Every great hero begins their journey with a single step. Forge your
-                  destiny—create a Skill Book and master the art of greatness!"
+                <Text className="text-center text-white">
+                  Every great hero begins their journey with a single step. Forge your
+                  destiny, create a Skill Book and master the art of greatness!
                 </Text>
               </View>
             )}

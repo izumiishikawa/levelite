@@ -78,8 +78,11 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
       }))
     );
 
-  const { inPenaltyZone } = usePenaltyZoneStore(
-    useShallow((state) => ({ inPenaltyZone: state.inPenaltyZone }))
+  const { inPenaltyZone, setInPenaltyZone } = usePenaltyZoneStore(
+    useShallow((state) => ({
+      inPenaltyZone: state.inPenaltyZone,
+      setInPenaltyZone: state.setInPenaltyZone,
+    }))
   );
 
   const { showSnackBar } = useSnackBar();
@@ -117,12 +120,14 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
 
   const fetchTasks = async () => {
     try {
+      setIsLoading(true);
       if (!id || generatedToday === null || classGeneratedWeek === null) {
         console.warn('ID ou generatedToday não estão prontos.');
         return;
       }
 
       let tasks = [];
+      setCurrentTasks([]);
 
       if (taskType === 'daily') {
         if (inPenaltyZone) {
@@ -130,9 +135,7 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
           tasks = tasks.filter((task: any) => task.type === 'penaltyTask');
         } else {
           if (!generatedToday) {
-            setIsLoading(true);
             await generateAiTasks(id);
-            setIsLoading(false);
           }
 
           tasks = await consultPendingTasks(id);
@@ -143,22 +146,18 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
         tasks = tasks.filter((task: any) => task.type === 'userTask');
       } else if (taskType === 'class') {
         if (!classGeneratedWeek) {
-          setIsLoading(true);
           await generateClassTasks(id);
-          setIsLoading(false);
         }
 
         tasks = await consultClassTasks(id);
         tasks = tasks.filter((task: any) => task.type === 'classQuests');
       } else if (taskType === 'skillbook' && skillBookId) {
         if (!skillBookGeneratedToday) {
-          setIsLoading(true);
           if (currentTasks.length === 0) {
             await generateSkillBookTasks(skillBookId);
           }
 
           setUpdateSkillBookSignal(Math.random());
-          setIsLoading(false);
         }
 
         tasks = await getSkillBookTasks(skillBookId);
@@ -177,6 +176,8 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
           useNativeDriver: true,
         }).start();
       });
+
+      setIsLoading(false);
     } catch (error) {
       console.error('Erro ao buscar tarefas:', error);
     } finally {
@@ -201,8 +202,13 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
           setAllTasksCompleted(true);
         }
 
+        if (data.allPenalityCompleted) {
+          setInPenaltyZone(false);
+        }
+
         if (data.leveledUp === true) {
           setLeveledUp(true);
+          setCurrentTasks([])
         }
 
         setLevel(data.user.level);
@@ -352,9 +358,12 @@ export const TaskWrapper: React.FC<TaskWrapperProps> = ({
                           title={taskInfo.title}
                           description={taskInfo.description}
                           xpReward={taskInfo.xpReward}
+                          recurrence={taskInfo.recurrence}
                           attribute={taskInfo.attribute}
                           intensityLevel={taskInfo.intensityLevel}
+                          specificDays={taskInfo.specificDays}
                           status={taskInfo.status}
+                          skillBook={taskType === 'skillbook' ? true : false}
                           onComplete={() =>
                             handleTaskCompletion(
                               taskInfo._id,

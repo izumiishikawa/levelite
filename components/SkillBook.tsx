@@ -7,9 +7,11 @@ import { removeSkillBook } from '~/services/api';
 import { usePlayerDataStore } from '~/stores/mainStore';
 import { useShallow } from 'zustand/shallow';
 import { router } from 'expo-router';
+import { darken } from 'polished';
 
 interface SkillBookProps {
   id: string;
+  color: string;
   title: string;
   level: 'low' | 'medium' | 'high';
   icon: string | number; // Pode ser uma URL ou um `require`
@@ -35,6 +37,7 @@ const intensityLevels = {
 export const SkillBook: React.FC<SkillBookProps> = ({
   id,
   title,
+  color,
   level,
   icon,
   description,
@@ -88,12 +91,17 @@ export const SkillBook: React.FC<SkillBookProps> = ({
         onPress={onOpen} // Clique curto chama o onOpen
         onLongPress={() => setShowPopover(true)} // Clique longo abre o Popover
       >
-        <View className="w-30 z-20 flex h-56 max-h-56 min-w-36 max-w-36 flex-col items-center justify-center gap-2 rounded-lg bg-[--accent] px-2 py-4 shadow-lg">
+        <View
+          style={{ backgroundColor: color }}
+          className="w-30 z-20 flex h-56 max-h-56 min-w-36 max-w-36 flex-col items-center justify-center gap-2 rounded-lg px-2 py-4 shadow-lg">
           <Text className="text-md text-center text-white" black>
             {title}
           </Text>
         </View>
-        <View className="absolute left-6 -z-10 mt-2 h-52 w-36 rounded-lg bg-[#6344ab]" />
+        <View
+          style={{ backgroundColor: darken(0.2, color) }}
+          className="absolute left-6 -z-10 mt-2 h-52 w-36 rounded-lg"
+        />
         <View className="absolute left-2 -z-10 mt-4 h-48 w-36 rounded-lg bg-white drop-shadow-lg" />
       </TouchableOpacity>
     </>

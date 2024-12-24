@@ -29,10 +29,10 @@ function calculateTaskXpReward(level, difficulty, base_exp) {
       xpPercentage = 0.025;
       break;
     case 'medium':
-      xpPercentage = 0.035; 
+      xpPercentage = 0.035;
       break;
     case 'high':
-      xpPercentage = 0.045; 
+      xpPercentage = 0.045;
       break;
     default:
       xpPercentage = 0.005;
@@ -74,67 +74,51 @@ router.get('/profile', async (req, res) => {
   }
 });
 
-router.post(
-  "/profile-picture",
-  multer(multerConfig).single("file"),
-  async (req, res) => {
-    try {
-      const userId = req.userId;
+router.post('/profile-picture', multer(multerConfig).single('file'), async (req, res) => {
+  try {
+    const userId = req.userId;
 
-      if (!userId) {
-        return res.status(401).send({ error: "Usuário não autenticado." });
-      }
-
-      const { filename: key } = req.file; 
-
-      const updatedUser = await User.findByIdAndUpdate(
-        userId,
-        { icon: key }, 
-        { new: true }
-      );
-
-      if (!updatedUser) {
-        return res.status(404).send({ error: "Usuário não encontrado." });
-      }
-
-      return res.status(200).send(key);
-    } catch (error) {
-      console.error("Erro ao atualizar ícone de perfil:", error);
-      return res.status(500).send({ error: "Erro interno ao atualizar o ícone de perfil." });
+    if (!userId) {
+      return res.status(401).send({ error: 'Usuário não autenticado.' });
     }
-  }
-);
 
-router.post(
-  "/profile-banner",
-  multer(multerConfig).single("file"),
-  async (req, res) => {
-    try {
-      const userId = req.userId; 
+    const { filename: key } = req.file;
 
-      if (!userId) {
-        return res.status(401).send({ error: "Usuário não autenticado." });
-      }
+    const updatedUser = await User.findByIdAndUpdate(userId, { icon: key }, { new: true });
 
-      const { filename: key } = req.file;
-
-      const updatedUser = await User.findByIdAndUpdate(
-        userId,
-        { banner: key }, 
-        { new: true } 
-      );
-
-      if (!updatedUser) {
-        return res.status(404).send({ error: "Usuário não encontrado." });
-      }
-
-      return res.status(200).send(key);
-    } catch (error) {
-      console.error("Erro ao atualizar ícone de perfil:", error);
-      return res.status(500).send({ error: "Erro interno ao atualizar o ícone de perfil." });
+    if (!updatedUser) {
+      return res.status(404).send({ error: 'Usuário não encontrado.' });
     }
+
+    return res.status(200).send(key);
+  } catch (error) {
+    console.error('Erro ao atualizar ícone de perfil:', error);
+    return res.status(500).send({ error: 'Erro interno ao atualizar o ícone de perfil.' });
   }
-);
+});
+
+router.post('/profile-banner', multer(multerConfig).single('file'), async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    if (!userId) {
+      return res.status(401).send({ error: 'Usuário não autenticado.' });
+    }
+
+    const { filename: key } = req.file;
+
+    const updatedUser = await User.findByIdAndUpdate(userId, { banner: key }, { new: true });
+
+    if (!updatedUser) {
+      return res.status(404).send({ error: 'Usuário não encontrado.' });
+    }
+
+    return res.status(200).send(key);
+  } catch (error) {
+    console.error('Erro ao atualizar ícone de perfil:', error);
+    return res.status(500).send({ error: 'Erro interno ao atualizar o ícone de perfil.' });
+  }
+});
 
 router.put('/distribute-points', async (req, res) => {
   const { aura, vitality, focus } = req.body;
@@ -176,16 +160,49 @@ router.get('/tasks', async (req, res) => {
 
     const { startOfDay, endOfDay } = getStartAndEndOfDay();
 
+    const todayDayOfWeek = new Date().getDay(); // Obtém o dia atual da semana (0-6)
+
     const pendingTasksFilter = {
       status: 'pending',
       skillBookId: null,
-      $or: [{ type: 'dailyQuests' }, { type: 'userTask' }],
+      $or: [
+        { type: 'dailyQuests' },
+        {
+          type: 'userTask',
+          recurrence: { $ne: 'custom' }, // Exclui as custom neste filtro
+        },
+        {
+          type: 'userTask',
+          recurrence: 'custom',
+          specificDays: todayDayOfWeek, // Garante que é custom e inclui o dia atual
+        },
+      ],
     };
 
     const completedTasksFilter = {
-      status: 'completed',
-      dateCompleted: { $gte: startOfDay, $lt: endOfDay },
-      $or: [{ type: 'dailyQuests' }, { type: 'userTask' }],
+      $or: [
+        {
+          status: 'completed',
+          dateCompleted: { $gte: startOfDay, $lt: endOfDay },
+          $or: [
+            { type: 'dailyQuests' },
+            {
+              type: 'userTask',
+              recurrence: { $ne: 'custom' },
+            },
+            {
+              type: 'userTask',
+              recurrence: 'custom',
+              specificDays: todayDayOfWeek,
+            },
+          ],
+        },
+        {
+          status: 'completed',
+          type: 'userTask',
+          recurrence: 'weekly',
+        },
+      ],
     };
 
     const filters = {
@@ -200,6 +217,8 @@ router.get('/tasks', async (req, res) => {
     res.status(500).json({ error: 'Failed to retrieve tasks', details: error.message });
   }
 });
+
+
 
 router.patch('/tasks/restore', async (req, res) => {
   try {
@@ -219,13 +238,12 @@ router.patch('/tasks/restore', async (req, res) => {
 
     const userId = task.userId;
     const xpPenalty = task.xpReward || 0;
-    
 
     const user = await User.findById(userId);
     if (user) {
       user.currentXP -= xpPenalty;
       user.totalExp -= xpPenalty;
-      user.coins -= 12
+      user.coins -= 12;
 
       while (user.xp < 0 && user.level > 1) {
         user.level -= 1;
@@ -271,10 +289,6 @@ router.get('/penalty-tasks', async (req, res) => {
       ],
     });
 
-    if (!tasks || tasks.length === 0) {
-      return res.status(404).send({ error: 'No penalty tasks found' });
-    }
-
     return res.status(200).json(tasks);
   } catch (error) {
     console.error(error);
@@ -283,7 +297,14 @@ router.get('/penalty-tasks', async (req, res) => {
 });
 
 router.post('/create-user-task', async (req, res) => {
-  const { title, description, attribute, intensityLevel, recurrence, xpReward } = req.body;
+  const {
+    title,
+    description,
+    attribute,
+    intensityLevel,
+    recurrence,
+    specificDays, 
+  } = req.body;
   const userId = req.userId;
 
   try {
@@ -292,15 +313,34 @@ router.post('/create-user-task', async (req, res) => {
       return res.status(404).send({ error: 'User not found' });
     }
 
-    const xpReward = calculateTaskXpReward(user.level, intensityLevel, user.xpForNextLevel);
+    if (recurrence === 'custom') {
+      if (!Array.isArray(specificDays) || specificDays.length === 0) {
+        return res.status(400).send({
+          error: 'For custom recurrence, specificDays must be a non-empty array of numbers (0-6).',
+        });
+      }
+      if (!specificDays.every((day) => day >= 0 && day <= 6)) {
+        return res.status(400).send({
+          error: 'specificDays must contain only valid days of the week (0-6).',
+        });
+      }
+    }
+
+    const calculatedXpReward = calculateTaskXpReward(
+      user.level,
+      intensityLevel,
+      user.xpForNextLevel
+    );
+
     const task = await Task.create({
       userId,
       title,
       description,
       attribute,
       intensityLevel,
-      xpReward,
+      xpReward: calculatedXpReward,
       recurrence,
+      specificDays: recurrence === 'custom' ? specificDays : undefined, 
       type: 'userTask',
       status: 'pending',
       dateAssigned: new Date(),
@@ -355,7 +395,7 @@ router.put('/complete-task', async (req, res) => {
 
     user.currentXP += task.xpReward;
     user.totalExp += task.xpReward;
-    user.coins += 12
+    user.coins += 12;
 
     while (user.currentXP >= user.xpForNextLevel) {
       user.currentXP -= user.xpForNextLevel;
@@ -387,22 +427,18 @@ router.put('/complete-task', async (req, res) => {
       }
     }
 
+    let allPenalityCompleted = false;
+
     if (task.type === 'penaltyTask') {
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-
-      const todayEnd = new Date();
-      todayEnd.setHours(23, 59, 59, 999);
-
       const remainingPenaltyTasks = await Task.find({
         userId,
         type: 'penaltyTask',
         status: 'pending',
-        dateAssigned: { $gte: todayStart, $lt: todayEnd },
       });
 
       if (remainingPenaltyTasks.length === 0) {
         user.inPenaltyZone = false;
+        allPenalityCompleted = true
       }
     }
 
@@ -427,6 +463,7 @@ router.put('/complete-task', async (req, res) => {
         dateCompleted: task.dateCompleted,
       },
       allTasksCompleted,
+      allPenalityCompleted,
       leveledUp,
     });
   } catch (error) {
@@ -485,6 +522,10 @@ router.post('/generate-tasks', async (req, res) => {
 
     if (!user) {
       return res.status(404).send({ error: 'User not found' });
+    }
+
+    if (user.inPenaltyZone) {
+      return res.status(404).send({ error: 'User in penality' });
     }
 
     const profile = await Profile.findOne({ userId });

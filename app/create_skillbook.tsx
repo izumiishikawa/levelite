@@ -26,10 +26,13 @@ const CreateSkillBook: React.FC = () => {
   const [selectedLevel, setSelectedLevel] = useState<'beginner' | 'intermediate' | 'expert'>(
     'beginner'
   );
+  const [selectedColor, setSelectedColor] = useState('#3B82F6'); // Cor inicial padrão
   const [selectedFrequency, setSelectedFrequency] = useState<'daily' | 'weekly'>('daily');
 
   const router = useRouter();
   const { skillBookId } = useLocalSearchParams();
+
+  const colors = ['#3B82F6', '#10B981', '#FACC15', '#FB923C', '#EC4899', '#8B5CF6'];
 
   useEffect(() => {
     if (skillBookId) {
@@ -43,6 +46,7 @@ const CreateSkillBook: React.FC = () => {
           setSelectedDifficulty(skillBook.parameters.difficulty);
           setSelectedFrequency(skillBook.parameters.frequency);
           setSelectedLevel(skillBook.parameters.level);
+          setSelectedColor(skillBook.color)
         } catch (error) {
           showSnackBar(
             <View className="flex flex-row items-center gap-2">
@@ -59,7 +63,7 @@ const CreateSkillBook: React.FC = () => {
   }, [skillBookId]);
 
   const handleSaveSkillBook = async () => {
-    if (!title || !description || !selectedDifficulty || !selectedFrequency) {
+    if (!title || !description || !selectedDifficulty || !selectedFrequency || !selectedColor) {
       showSnackBar(
         <View className="flex flex-row items-center gap-2">
           <Text className="text-white" black>
@@ -79,6 +83,7 @@ const CreateSkillBook: React.FC = () => {
           frequency: selectedFrequency,
           level: selectedLevel,
         },
+        color: selectedColor,
       };
 
       if (skillBookId) {
@@ -200,6 +205,8 @@ const CreateSkillBook: React.FC = () => {
             <View
               key={difficulty}
               style={{
+                flex: 1, // Faz com que cada item ocupe espaço igual
+                minWidth: 100, // Define o tamanho mínimo antes de quebrar a linha
                 borderWidth: selectedDifficulty === difficulty ? 3 : 0,
                 borderColor: selectedDifficulty === difficulty ? '#996DFF' : 'transparent',
                 borderRadius: 16, // Ajuste para combinar com o botão interno
@@ -254,6 +261,24 @@ const CreateSkillBook: React.FC = () => {
                 {frequency === 'daily' ? 'Daily' : 'Weekly'}
               </Text>
             </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text className="mt-6 text-[#B8B8B8]">Choose a color for your skill book:</Text>
+        <View className="mt-4 w-full flex-row flex-wrap justify-center gap-4">
+          {colors.map((color) => (
+            <TouchableOpacity
+              key={color}
+              onPress={() => setSelectedColor(color)}
+              style={{
+                backgroundColor: color,
+                width: 40,
+                height: 40,
+                borderRadius: 25,
+                borderWidth: selectedColor === color ? 3 : 0,
+                borderColor: '#FFF',
+              }}
+            />
           ))}
         </View>
 

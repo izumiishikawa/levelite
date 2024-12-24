@@ -1,11 +1,12 @@
 import React from 'react';
-import { View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import { ProgressIndicator } from './nativewindui/ProgressIndicator';
 import Text from './Text';
 import AnimatedRollingNumbers from './AnimatedRolling';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useLevelsAndExpStore, usePenaltyZoneStore } from '~/stores/mainStore';
 import { useShallow } from 'zustand/shallow';
+
 
 export const GeneralLevel: React.FC = () => {
   const { level, currentXP, xpForNextLevel } = useLevelsAndExpStore(
@@ -15,11 +16,10 @@ export const GeneralLevel: React.FC = () => {
       xpForNextLevel: state.xpForNextLevel,
     }))
   );
-  
+
   const { inPenaltyZone } = usePenaltyZoneStore(
     useShallow((state) => ({ inPenaltyZone: state.inPenaltyZone }))
   );
-  
 
   const barColor = inPenaltyZone ? '#cb3d55' : '#996DFF';
 
@@ -34,11 +34,10 @@ export const GeneralLevel: React.FC = () => {
         <View className="text-md absolute -bottom-2 left-10 z-20 flex h-fit flex-row items-center text-center">
           <Icon name="sparkles" style={{ marginRight: 4 }} size={17} color={barColor} />
           <Text style={{ color: barColor }} black>
-            EXP {" "}
+            EXP{' '}
           </Text>
-          <Text  style={{color: barColor}} black>
+          <Text style={{ color: barColor }} black>
             [
-              {" "}
             <AnimatedRollingNumbers
               className="pt-[3px]"
               fontSize={14}
@@ -55,6 +54,7 @@ export const GeneralLevel: React.FC = () => {
             ]
           </Text>
         </View>
+
         <View className="absolute bottom-[-10px] left-[-12px] h-20 w-10 rotate-[15deg] bg-[--background]" />
         <View className="m-auto flex w-[75%] flex-col">
           <ProgressIndicator

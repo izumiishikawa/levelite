@@ -906,6 +906,7 @@ export const createSkillBook = async (
       frequency: 'daily' | 'weekly';
       level: 'beginner' | 'intermediate' | 'expert';
     };
+    color: string;
   }
 ) => {
   const userToken = await AsyncStorage.getItem('userToken');
@@ -1017,6 +1018,163 @@ export const updateStreak = async (userId: string) => {
     const response = await axios.put(
       `${url}/streak/update-streak`,
       { userId },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
+        },
+      }
+    );
+
+    switch (response.status) {
+      case 200:
+        return response.data; // Retorna os dados do sucesso da atualização
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getRoadmaps = async () => {
+  const userToken = await AsyncStorage.getItem('userToken');
+  try {
+    const response = await axios.get(
+      `${url}/roadmaps/`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
+        },
+      }
+    );
+
+    switch (response.status) {
+      case 200:
+        return response.data; // Retorna os dados do sucesso da atualização
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getRoadmapById = async (roadmapId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
+  try {
+    const response = await axios.get(
+      `${url}/roadmaps/${roadmapId}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
+        },
+      }
+    );
+
+    switch (response.status) {
+      case 200:
+        return response.data; // Retorna os dados do sucesso da atualização
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getDungeonById = async (roadmapId: string, dungeonId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
+  try {
+    const response = await axios.get(
+      `${url}/roadmaps/${roadmapId}/dungeons/${dungeonId}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
+        },
+      }
+    );
+
+    switch (response.status) {
+      case 200:
+        return response.data; // Retorna os dados do sucesso da atualização
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const enterRoadmapNode = async (roadmapId: string, nodeId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
+
+  try {
+    const response = await axios.post(
+      `${url}/roadmaps/${roadmapId}/elements/${nodeId}/enter`,
+      {},
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
+        },
+      }
+    );
+
+    switch (response.status) {
+      case 200:
+        return response.data; // Retorna os dados do sucesso da atualização
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+
+export const startDungeonBattle = async (enemyId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
+
+  try {
+    const response = await axios.post(
+      `${url}/roadmaps/start-battle/${enemyId}`,
+      {},
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${userToken}`,
+        },
+      }
+    );
+
+    switch (response.status) {
+      case 200:
+        return response.data; // Retorna os dados do sucesso da atualização
+      default:
+        throw new Error(`Unexpected status code: ${response.status}`);
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const enterRoadmap = async (roadmapId: string) => {
+  const userToken = await AsyncStorage.getItem('userToken');
+
+  try {
+    const response = await axios.post(
+      `${url}/roadmaps/enter/${roadmapId}`,
+      {},
       {
         headers: {
           'Content-Type': 'application/json',

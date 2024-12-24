@@ -11,9 +11,14 @@ const openai = new OpenAI({
 
 const router = express.Router();
 
+const GROWTH_FACTOR = 1.03;
+
+function calculateXpForNextLevel(level, base_exp) {
+  return Math.floor(base_exp * Math.pow(GROWTH_FACTOR, level - 1));
+}
+
 function calculateTaskXpReward(level, difficulty, base_exp) {
-  const GROWTH_RATE = 1.03;
-  const XP_next_level = Math.floor(base_exp * Math.pow(level == 1 ? 2 : level, GROWTH_RATE));
+  const XP_next_level = calculateXpForNextLevel(level, base_exp);
 
   let xpPercentage;
 
@@ -69,10 +74,10 @@ router.get('/:skillBookId', async (req, res) => {
 
 router.post('/create-skillbook', async (req, res) => {
   const userId = req.userId;
-  const { title, focus, parameters } = req.body;
+  const { title, focus, parameters, color } = req.body;
 
   try {
-    const skillBook = await SkillBook.create({ userId, title, focus, parameters });
+    const skillBook = await SkillBook.create({ userId, title, focus, parameters, color });
 
     res.status(201).json({ message: 'Skill Book created successfully', skillBook });
   } catch (error) {
@@ -115,28 +120,34 @@ router.delete('/remove/:skillBookId', async (req, res) => {
   }
 
   try {
-    const result = await SkillBook.deleteOne({ userId, _id: skillBookId });
+    // Remover o SkillBook
+    const skillBookResult = await SkillBook.deleteOne({ userId, _id: skillBookId });
 
-    if (result.deletedCount === 0) {
+    if (skillBookResult.deletedCount === 0) {
       return res.status(404).json({
         success: false,
         message: 'SkillBook não encontrado ou já removido.',
       });
     }
 
+    // Remover as tarefas relacionadas ao SkillBook
+    const taskResult = await Task.deleteMany({ skillBookId });
+
     return res.status(200).json({
       success: true,
-      message: 'SkillBook removido com sucesso.',
+      message: 'SkillBook e suas tarefas relacionadas foram removidos com sucesso.',
+      deletedTasksCount: taskResult.deletedCount, // Informação adicional opcional
     });
   } catch (error) {
-    console.error('Erro ao remover SkillBook:', error);
+    console.error('Erro ao remover SkillBook e tarefas relacionadas:', error);
 
     return res.status(500).json({
       success: false,
-      message: 'Ocorreu um erro ao tentar remover o SkillBook.',
+      message: 'Ocorreu um erro ao tentar remover o SkillBook e suas tarefas relacionadas.',
     });
   }
 });
+
 
 router.post('/generate-skillbook-tasks/:bookId', async (req, res) => {
   const { bookId } = req.params;

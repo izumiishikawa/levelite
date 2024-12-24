@@ -1,9 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import Text from '~/components/Text';
 import Title from '~/components/Title';
 import { getProgressCalendar } from '~/services/api';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {
+  LineChart,
+  BarChart,
+  PieChart,
+  ProgressChart,
+  ContributionGraph,
+  StackedBarChart,
+} from 'react-native-chart-kit';
 
 type CalendarData = {
   day: number;
@@ -88,6 +96,24 @@ const Progress: React.FC = () => {
     }
   })();
 
+  // Preparar dados para o gráfico
+  const chartData = Array.from({ length: daysInMonth }, (_, i) => {
+    const day = i + 1;
+    const dayData = calendarData.find((d) => d.day === day);
+
+    if (dayData) {
+      switch (dayData.status) {
+        case 'completed':
+          return 100; // Pontos altos
+        case 'penalty':
+          return 0; // Pontos baixos
+        default:
+          return 50; // Faixa intermediária
+      }
+    }
+    return 50; // Dias sem atividade
+  });
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -97,7 +123,7 @@ const Progress: React.FC = () => {
   }
 
   return (
-    <ScrollView className='mb-20'>
+    <ScrollView className="mb-20">
       <View className="flex h-full w-full flex-col items-center bg-[--background] pt-20">
         <View className="w-[80%]">
           <Title text="Progress Calendar" />
@@ -113,10 +139,6 @@ const Progress: React.FC = () => {
             <View className="flex flex-row items-center gap-2">
               <View className="h-6 w-6 rounded-md bg-[--accent]"></View>
               <Text className="text-sm text-white">All tasks completed successfully!</Text>
-            </View>
-            <View className="flex flex-row items-center gap-2">
-              <View className="h-6 w-6 rounded-md bg-[#faaf00]"></View>
-              <Text className="text-sm text-white">You escaped the penalty zone.</Text>
             </View>
           </View>
 
@@ -158,6 +180,7 @@ const Progress: React.FC = () => {
               );
             })}
           </View>
+
           <View className="mt-4 flex flex-row gap-4 self-start">
             <TouchableOpacity
               onPress={handlePreviousMonth}
@@ -187,40 +210,6 @@ const Progress: React.FC = () => {
                 Next
               </Text>
             </TouchableOpacity>
-          </View>
-
-          <View className="mt-10 flex w-full flex-row flex-wrap items-center gap-10">
-            <View className="flex flex-col gap-1 self-start">
-              <View className="flex flex-row items-center gap-1">
-                <Icon name="sparkles" size={20} color="#996DFF" />
-                <Text className="text-white" bold>
-                  Monthly XP Gained
-                </Text>
-              </View>
-              <Text className="text-4xl text-white" black>
-                {xpEarned}
-              </Text>
-              <Text className="text-xs text-gray-400">
-                "Every point of XP is a step closer to mastery. Keep climbing the ladder of
-                greatness!"
-              </Text>
-            </View>
-
-            <View className="mt-10 flex flex-col gap-1 self-start">
-              <View className="flex flex-row items-center gap-1">
-                <Icon name="checkmark-circle" size={20} color="#faaf00" />
-                <Text className="text-white" bold>
-                  Tasks Conquered This Month
-                </Text>
-              </View>
-              <Text className="text-4xl text-white" black>
-                {totalTasks}
-              </Text>
-              <Text className="text-xs text-gray-400">
-                "Each task completed is a battle won. You're crafting your legacy—one achievement at
-                a time."
-              </Text>
-            </View>
           </View>
         </View>
       </View>

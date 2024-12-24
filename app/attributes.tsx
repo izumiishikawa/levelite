@@ -239,7 +239,7 @@ const AttributeCircle: React.FC = () => {
             borderRadius: 12,
           }}
           disabled={availablePoints === pointsToDistribute}>
-          <Text className="text-xl text-white" bold>
+          <Text className="text-white" bold>
             Confirm
           </Text>
         </TouchableOpacity>

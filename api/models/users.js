@@ -9,11 +9,11 @@ const usersSchema = new mongoose.Schema({
   },
   icon: {
     type: String,
-    default: "default.jpg"
+    default: 'default.jpg',
   },
   banner: {
     type: String,
-    default: "default_banner.jpg"
+    default: 'default_banner.jpg',
   },
   email: {
     type: String,
@@ -27,7 +27,7 @@ const usersSchema = new mongoose.Schema({
 
   playerTitle: {
     type: String,
-    default: "Novice"
+    default: 'Novice',
   },
 
   createdAt: {
@@ -136,16 +136,51 @@ const usersSchema = new mongoose.Schema({
     type: Date,
   },
 
+  completedDates: {
+    type: [String],
+    default: [],
+  },
+
+  penalityDates: {
+    type: [String],
+    default: [],
+  },
+
   friendId: {
     type: String,
-    default: () => uuidv4(), 
+    default: () => uuidv4(),
     unique: true,
   },
   friends: {
     type: [
       {
         friendId: { type: String },
-      }
+      },
+    ],
+    default: [],
+  },
+
+  currentRoadmap: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Roadmap',
+    default: null,
+  },
+
+  currentDungeon: {
+    dungeonId: { type: String, ref: 'Dungeon', default: null },
+    currentEnemy: { id: { type: String }, health: { type: Number } }, // ID do inimigo atual
+    defeatedEnemies: { type: [String], default: [] }, // IDs dos inimigos derrotados
+    bossDefeated: { type: Boolean, default: false }, // Status do boss
+  },
+
+  roadmapProgress: {
+    type: [
+      {
+        roadmapId: { type: mongoose.Schema.Types.ObjectId, ref: 'Roadmap', required: true },
+        completedNodes: { type: [String], default: [] }, // IDs dos nodes concluídos
+        completedTreasures: { type: [String], default: [] }, // IDs dos baús abertos
+        completedDungeons: { type: [String], default: [] }, // IDs das dungeons concluídas
+      },
     ],
     default: [],
   },

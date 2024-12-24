@@ -4,12 +4,12 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const cron = require('node-cron');
 const Task = require('./models/tasks');
-const path = require("path");
-const User = require('./models/users'); 
+const path = require('path');
+const User = require('./models/users');
 
 const app = express();
 
-app.use("/files", express.static(path.join(__dirname, "tmp", "uploads")));
+app.use('/files', express.static(path.join(__dirname, 'tmp', 'uploads')));
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -29,7 +29,7 @@ require('./controllers/index')(app);
 
 const PORT = 3000 || 3001;
 
-const GROWTH_FACTOR = 1.03; 
+const GROWTH_FACTOR = 1.03;
 
 function calculateXpForNextLevel(level, base_exp) {
   return Math.floor(base_exp * Math.pow(GROWTH_FACTOR, level - 1));
@@ -42,10 +42,10 @@ function calculateTaskXpReward(level, difficulty, base_exp) {
 
   switch (difficulty) {
     case 'low':
-      xpPercentage = 0.025; 
+      xpPercentage = 0.025;
       break;
     case 'medium':
-      xpPercentage = 0.035; 
+      xpPercentage = 0.035;
       break;
     case 'high':
       xpPercentage = 0.045;
@@ -57,97 +57,167 @@ function calculateTaskXpReward(level, difficulty, base_exp) {
   return Math.floor(XP_next_level * xpPercentage);
 }
 
-
-const startOfToday = () => {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  return now;
-};
-
-const endOfToday = () => {
-  const now = new Date();
-  now.setHours(23, 59, 59, 999);
-  return now;
-};
 cron.schedule('59 23 * * *', async () => {
   console.log('Iniciando tarefas do cron job consolidado...');
+  var startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
 
   const users = await User.find();
 
-  console.log('Verificação de progresso diário iniciada...');
   for (const user of users) {
     try {
+      // se o usuario ainda estiver na zona de penalidade, quer dizer que ele não fez as tarefas de penalidade, logo, ele toma dano e sai da zona de penalidade
       if (user.inPenaltyZone) {
         user.health -= 35;
         user.inPenaltyZone = false;
 
-        const pendingPenaltyTasks = await Task.find({ userId: user._id, type: "penaltyTask", status: 'pending' });
-        for (const task of pendingPenaltyTasks) {
-          task.status = "incomplete";
-          await task.save();
-        }
+        await User.findByIdAndUpdate(
+          user._id,
+          { $addToSet: { penalityDates: startOfToday.toISOString().split('T')[0] } },
+          { new: true }
+        );
       }
 
-      const pendingTasks = await Task.find({
+      await Task.deleteMany({
         userId: user._id,
-        type: "dailyQuests",
-        status: 'pending',
-        dateAssigned: { $gte: startOfToday(), $lt: endOfToday() },
+        type: 'penaltyTask',
       });
 
-      const hasIncompleteTasks = pendingTasks.length > 0;
+      // busca todas as tarefas diárias do usuário
+      const dailyQuests = await Task.find({
+        userId: user._id,
+        type: 'dailyQuests',
+      });
 
-      for (const task of pendingTasks) {
-        task.status = 'incomplete';
-        await task.save();
-      }
+      // se tiver tarefas
+      if (dailyQuests.length > 0) {
+        const allCompleted = dailyQuests.every((task) => task.status === 'completed'); // verifica se todas estão completas
 
-      if (hasIncompleteTasks) {
-        user.streak = 0;
-        user.inPenaltyZone = true;
-        console.log(`Streak do usuário ${user._id} foi zerada e penalidades serão geradas.`);
+        if (allCompleted) {
+          await User.findByIdAndUpdate(
+            user._id,
+            { $addToSet: { completedDates: startOfToday.toISOString().split('T')[0] } },
+            { new: true }
+          );
+        } else {
+          user.inPenaltyZone = true;
+          user.streak = 0;
 
-        const penaltyTasks = [
-          { title: '100 push-ups', attribute: 'vitality', intensityLevel: 'high', xpReward: 10 },
-          { title: '100 sit-ups', attribute: 'vitality', intensityLevel: 'high', xpReward: 10 },
-          { title: '100 squats', attribute: 'vitality', intensityLevel: 'high', xpReward: 10 },
-          { title: '5 km run', attribute: 'vitality', intensityLevel: 'high', xpReward: 10 },
-        ];
+          const penaltyTasks = [
+            { title: '100 push-ups', attribute: 'vitality', intensityLevel: 'high', xpReward: 10 },
+            { title: '100 sit-ups', attribute: 'vitality', intensityLevel: 'high', xpReward: 10 },
+            { title: '100 squats', attribute: 'vitality', intensityLevel: 'high', xpReward: 10 },
+            { title: '5 km run', attribute: 'vitality', intensityLevel: 'high', xpReward: 10 },
+          ];
 
-        const savedTasks = [];
-        for (const task of penaltyTasks) {
-          const savedTask = await Task.create({
-            userId: user._id,
-            title: task.title,
-            attribute: task.attribute,
-            intensityLevel: task.intensityLevel,
-            xpReward: task.xpReward,
-            type: 'penaltyTask',
-            status: "pending",
-            dateAssigned: new Date(),
-          });
-          savedTasks.push(savedTask);
+          const savedTasks = [];
+          for (const task of penaltyTasks) {
+            const savedTask = await Task.create({
+              userId: user._id,
+              title: task.title,
+              attribute: task.attribute,
+              intensityLevel: task.intensityLevel,
+              xpReward: task.xpReward,
+              type: 'penaltyTask',
+              status: 'pending',
+              dateAssigned: new Date(),
+            });
+            savedTasks.push(savedTask);
+          }
         }
-        console.log(`Tarefas de penalidade criadas para o usuário ${user._id}`);
+
+        await Task.deleteMany({
+          userId: user._id,
+          type: 'dailyQuests',
+        });
+      } else {
+        console.log('o usuario', user.username, 'não tem tarefas hoje');
       }
 
-      user.generatedToday = false;
       user.allDone = false;
+      user.generatedToday = false;
 
       await user.save();
-    } catch (error) {
-      console.error(`Erro ao verificar tarefas para o usuário ${user._id}:`, error.message);
+    } catch (err) {
+      console.log(err);
     }
   }
-  console.log('Verificação de progresso diário concluída.');
 
-  console.log('Resetando campos generatedToday dos SkillBooks...');
-  try {
-    await SkillBook.updateMany({}, { $set: { generatedToday: false } });
-    console.log('Campos generatedToday resetados para todos os SkillBooks.');
-  } catch (error) {
-    console.error('Erro ao resetar campos generatedToday nos SkillBooks:', error.message);
+  console.log('Processamento de tarefas personalizadas iniciado...');
+  for (const user of users) {
+    try {
+      const today = new Date().getDay();
+
+      const customTasks = await Task.find({
+        userId: user._id,
+        recurrence: 'custom',
+        specificDays: today,
+      });
+
+      for (const task of customTasks) {
+        if (task.status === 'completed') {
+          const todayDate = new Date().toISOString().split('T')[0];
+
+          if (!task.completedDates.includes(todayDate)) {
+            task.completedDates.push(todayDate);
+          }
+
+          task.status = 'pending';
+          await task.save();
+
+          console.log(`Tarefa personalizada atualizada: ${task.title} para o usuário ${user._id}`);
+        } else {
+          console.log(`Tarefa personalizada pendente: ${task.title} para o usuário ${user._id}`);
+        }
+      }
+    } catch (error) {
+      console.error(
+        `Erro ao processar tarefas personalizadas para o usuário ${user._id}:`,
+        error.message
+      );
+    }
   }
+  console.log('Processamento de tarefas personalizadas concluído.');
+
+  console.log('Verificação de tarefas semanais do usuário iniciada...');
+  try {
+    const weeklyUserTasks = await Task.find({
+      recurrence: 'weekly',
+      type: 'userTask',
+    });
+
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    for (const task of weeklyUserTasks) {
+      if (task.dateAssigned < oneWeekAgo) {
+        if (task.status === 'completed') {
+          const todayDate = new Date().toISOString().split('T')[0];
+          if (!task.completedDates.includes(todayDate)) {
+            task.completedDates.push(todayDate);
+          }
+
+          task.status = 'pending';
+          task.dateAssigned = new Date();
+          await task.save();
+
+          console.log(
+            `Tarefa semanal do usuário concluída e resetada: ${task.title} para o usuário ${task.userId}`
+          );
+        } else if (task.status === 'pending') {
+          task.dateAssigned = new Date();
+          await task.save();
+
+          console.log(
+            `Tarefa semanal do usuário pendente mantida e data atualizada: ${task.title} para o usuário ${task.userId}`
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao verificar tarefas semanais do usuário:', error.message);
+  }
+  console.log('Verificação de tarefas semanais do usuário concluída.');
 
   console.log('Geração de tarefas diárias iniciada...');
   for (const user of users) {
@@ -159,61 +229,48 @@ cron.schedule('59 23 * * *', async () => {
       });
 
       for (const task of dailyTasks) {
-        const existingTask = await Task.findOne({
-          userId: user._id,
-          title: task.title,
-          recurrence: 'daily',
-          dateAssigned: { $gte: startOfToday(), $lt: endOfToday() },
-        });
+        if (task.status === 'completed') {
+          const today = new Date().toISOString().split('T')[0];
 
-        if (!existingTask) {
-          const xpReward = calculateTaskXpReward(user.level, task.intensityLevel, user.xpForNextLevel);
+          if (!task.completedDates.includes(today)) {
+            task.completedDates.push(today);
+          }
 
-          await Task.create({
-            userId: task.userId,
-            title: task.title,
-            description: task.description,
-            attribute: task.attribute,
-            type: task.type,
-            intensityLevel: task.intensityLevel,
-            xpReward,
-            status: 'pending',
-            dateAssigned: new Date(),
-            recurrence: 'daily',
-          });
-          console.log(`Tarefa diária recriada: ${task.title} para o usuário ${user._id}`);
+          task.status = 'pending';
+          await task.save();
+
+          console.log(`Tarefa diária atualizada: ${task.title} para o usuário ${user._id}`);
+        } else {
+          console.log(`Tarefa pendente: ${task.title} para o usuário ${user._id}`);
         }
       }
     } catch (error) {
       console.error(`Erro ao processar tarefas diárias para o usuário ${user._id}:`, error.message);
     }
   }
-  console.log('Geração de tarefas diárias concluída.');
 
-  console.log('Verificação de tarefas semanais iniciada...');
+  console.log('Verificação de tarefas semanais de classe iniciada...');
   try {
     const weeklyTasks = await Task.find({
       recurrence: 'weekly',
       type: 'classQuests',
       status: 'pending',
     });
-  
+
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-  
+
     for (const task of weeklyTasks) {
       if (task.dateAssigned < oneWeekAgo) {
         task.status = 'incomplete';
         await task.save();
-  
+
         const user = await User.findById(task.userId);
         if (user) {
-          user.classGeneratedWeek = false; 
+          user.classGeneratedWeek = false;
           await user.save();
           console.log(`classGeneratedWeek resetado para o usuário ${user._id}`);
         }
-  
-        console.log(`Tarefa semanal marcada como incompleta: ${task.title} para o usuário ${task.userId}`);
       }
     }
   } catch (error) {
@@ -223,7 +280,6 @@ cron.schedule('59 23 * * *', async () => {
 
   console.log('Cron job consolidado finalizado.');
 });
-
 
 app.listen(PORT, () => {
   console.log(`Servidor escutando na porta ${PORT}`);

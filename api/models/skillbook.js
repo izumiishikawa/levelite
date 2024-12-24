@@ -10,7 +10,8 @@ const skillBookSchema = new mongoose.Schema({
     level: { type: String, enum: ["beginner", "intermediate", "expert"], default: 'beginner', required: true },
   },
   dateCreated: { type: Date, default: Date.now },
-  generatedToday: { type: Boolean, default: false }
+  generatedToday: { type: Boolean, default: false },
+  color: { type: String, required: true }
 });
 
 module.exports = mongoose.model('SkillBook', skillBookSchema);

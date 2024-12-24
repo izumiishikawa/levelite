@@ -4,15 +4,12 @@ import AttributeCard from './AttributeCard';
 import { IntensityLevelTag } from './IntensityLevelTag';
 import Text from './Text';
 import { TaskConcluded } from './TaskConcluded';
-import { AppUserContext } from '~/contexts/AppUserContext';
 import { Swipeable, TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import LottieView from 'lottie-react-native';
 import { Audio } from 'expo-av';
-import { Button } from './Button';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import IconMat from 'react-native-vector-icons/MaterialCommunityIcons';
 import Title from './Title';
-import { usePlayerStore } from '~/contexts/playerDataStore';
 import { useShallow } from 'zustand/shallow';
 import { usePenaltyZoneStore } from '~/stores/mainStore';
 
@@ -21,6 +18,9 @@ interface TaskInterface {
   description: string;
   intensityLevel: 'low' | 'medium' | 'high';
   xpReward: number;
+  specificDays?: number[];
+  skillBook: boolean,
+  recurrence: string;
   attribute?: string; // Torna o atributo opcional
   isDefault: boolean; // Indica se é uma task padrão ou de skillbook
   status: 'completed' | 'pending';
@@ -46,9 +46,12 @@ export const TaskCard = ({
   description,
   intensityLevel,
   xpReward,
+  skillBook,
   attribute,
+  specificDays,
   isDefault,
   status,
+  recurrence,
   onComplete,
   onRestore,
   onDelete,
@@ -166,11 +169,11 @@ export const TaskCard = ({
             </View>
             {status === 'pending' ? (
               <Text className="text-2xl text-white" extraBold>
-                <Text className="text-[--accent]">+ {xpReward} EXP</Text> OBTIDO
+                <Text className="text-[--accent]">+ {xpReward} EXP</Text> RECEIVED
               </Text>
             ) : (
               <Text className="text-2xl text-white" extraBold>
-                <Text className="text-[--accent]">- {xpReward} EXP</Text> REMOVIDOS
+                <Text className="text-[--accent]">- {xpReward} EXP</Text> REMOVED
               </Text>
             )}
           </>
@@ -204,69 +207,101 @@ export const TaskCard = ({
         animationType="fade"
         onRequestClose={() => setIsModalVisible(false)}>
         <View style={styles.modalBackground}>
-          <View className='bg-[--background] w-full h-auto'>
-          <View className="relative z-20 flex mx-auto h-full w-[80%] flex-col justify-center">
-            <Title text={'Details'} />
+          <View className="h-auto w-full bg-[--background]">
+            <View className="relative z-20 mx-auto flex h-full w-[80%] flex-col justify-center">
+              <Title text={'Details'} />
 
-            <View className="my-4 mt-10">
-              <Text bold className="text-gray-400">
-                Task Title
-              </Text>
-              <Text className="text-white">{title}</Text>
-            </View>
-
-            <View className="my-4">
-              <Text bold className="text-gray-400">
-                Objective
-              </Text>
-              <Text className="text-white">{description}</Text>
-            </View>
-
-            <View className="flex flex-row justify-between flex-wrap">
-              <View className="">
+              <View className="my-4 mt-10">
                 <Text bold className="text-gray-400">
-                  Attribute
+                  Task Title
                 </Text>
-                <View className="mt-1 w-24 flex-row justify-between gap-4">
-                  <View className="rounded-full border border-[--accent] bg-transparent py-[2px] pl-1 pr-3">
-                    <View className="flex flex-row items-center gap-2 text-center text-white">
-                      <View className="flex h-5 w-5 flex-row items-center justify-center rounded-full bg-[--accent]">
-                        <Text className="text-xs">{attributeIcons[attribute]}</Text>
+                <Text className="text-white">{title || 'No title provided.'}</Text>
+              </View>
+
+              <View className="my-4">
+                <Text bold className="text-gray-400">
+                  Objective
+                </Text>
+                <Text className="text-white">{description || 'No description provided.'}</Text>
+              </View>
+
+              <View className="flex flex-row flex-wrap justify-between">
+                <View>
+                  <Text bold className="text-gray-400">
+                    Attribute
+                  </Text>
+                  <View className="mt-1 w-24 flex-row justify-between gap-4">
+                    <View className="rounded-full border border-[--accent] bg-transparent py-[2px] pl-1 pr-3">
+                      <View className="flex flex-row items-center gap-2 text-center text-white">
+                        <View className="flex h-5 w-5 flex-row items-center justify-center rounded-full bg-[--accent]">
+                          <Text className="text-xs">{attributeIcons[attribute]}</Text>
+                        </View>
+                        <Text bold className="text-xs uppercase text-white">
+                          {skillBook ? "Skill Book" : attribute}
+                        </Text>
                       </View>
-                      <Text bold className="text-xs uppercase text-white">
-                        {attribute}
-                      </Text>
                     </View>
                   </View>
                 </View>
+
+                <View>
+                  <Text bold className="mb-1 text-gray-400">
+                    Difficulty
+                  </Text>
+                  <IntensityLevelTag level={intensityLevel} />
+                </View>
+
+                <View>
+                  <Text bold className="mb-1 text-gray-400">
+                    Status
+                  </Text>
+                  <TaskConcluded status={status} />
+                </View>
               </View>
 
-              <View>
-                <Text bold className="mb-1 text-gray-400">
-                  Difficulty
+              <View className="my-2 mt-8">
+                <Text bold className="text-gray-400">
+                  Recurrence
                 </Text>
-                <IntensityLevelTag level={intensityLevel} />
+                <Text className="capitalize text-white">{recurrence}</Text>
               </View>
 
-              <View>
-                <Text bold className="mb-1 text-gray-400">
-                  Status
+              {specificDays && specificDays?.length > 0 ? (
+                <View className="">
+                  <Text bold className="text-gray-400">
+                    Repeats On
+                  </Text>
+                  <View className="mt-2 flex flex-row flex-wrap gap-2">
+                    {specificDays.map((day) => (
+                      <View
+                        key={day}
+                        className="rounded-full bg-[--accent] px-4 py-1 text-center text-xs">
+                        <Text className="text-white">
+                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day]}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : (
+                <View className="my-4">
+                  <Text bold className="text-gray-400">
+                    Repeats On
+                  </Text>
+                  <Text className="text-white">No repeat days provided.</Text>
+                </View>
+              )}
+
+              <View className="my-4">
+                <Text bold className="text-gray-400">
+                  Reward
                 </Text>
-                <TaskConcluded status={status} />
+                <Text black className="text-2xl text-[--accent]">
+                  {xpReward || 0} EXP POINTS
+                </Text>
               </View>
             </View>
-
-            <View className="my-4">
-              <Text bold className="text-gray-400">
-                Reward
-              </Text>
-              <Text black className="text-2xl text-[--accent]">
-                {xpReward} EXP POINTS
-              </Text>
-            </View>
           </View>
-          </View>
-         
         </View>
       </Modal>
 
@@ -340,7 +375,10 @@ export const TaskCard = ({
                 </Text>
               </View>
             </View>
-            <View className="absolute -bottom-1 right-0 mr-8">
+            <View className="absolute -bottom-1 right-0 mr-8 flex flex-row gap-2">
+              <View className="flex items-center justify-center rounded-full bg-[--foreground] px-4">
+                <Text className="text-xs capitalize text-white">{recurrence}</Text>
+              </View>
               {isCompleted ? (
                 <TaskConcluded status={status} />
               ) : (
@@ -372,7 +410,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', // Centraliza texto/botões dentro do modal
     width: '150%',
     transform: [{ rotate: '12deg' }],
-    height: "auto",
+    height: 'auto',
     flex: 1,
   },
   modalText: {

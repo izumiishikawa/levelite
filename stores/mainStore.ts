@@ -13,7 +13,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 interface PlayerDataStore {
   id: string;
   icon: string;
-  banner: string,
+  banner: string;
   username: string;
   playerTitle: string;
   generatedToday: boolean | null;
@@ -24,11 +24,19 @@ interface PlayerDataStore {
   weight: number;
   onboarded: boolean;
   updateTasksSignal: number;
+  updateSkillBookSignal: number;
+  currentRoadmap: string;
+  roadmapProgress: {
+    roadmapId: string;
+    completedNodes: string[];
+  }[];
+  currentDungeon: {} | null,
+  setCurrentDungeon: (currentDungeon: string) => void;
+  setCurrentRoadmap: (currentRoadmap: string) => void;
   setClassGeneratedWeek: (classGeneratedWeek: boolean) => void;
   setPlayerTitle: (playerTitle: string) => void;
   setUpdateTaskSignal: (updateTasksSignal: number) => void;
-  updateSkillBookSignal: number;
-  setUpdateSkillBookSignal: (updateTasksSignal: number) => void;
+  setUpdateSkillBookSignal: (updateSkillBookSignal: number) => void;
   setOnboarded: (onboarded: boolean) => void;
   setIcon: (icon: string) => void;
   setBanner: (banner: string) => void;
@@ -39,6 +47,7 @@ interface PlayerDataStore {
   setUsername: (username: string) => void;
   setHeight: (height: number) => void;
   setWeight: (weight: number) => void;
+  setRoadmapProgress: (roadmapProgress: { roadmapId: string; completedNodes: string[] }[]) => void;
 }
 
 export const usePlayerDataStore = create<PlayerDataStore>((set) => ({
@@ -55,10 +64,15 @@ export const usePlayerDataStore = create<PlayerDataStore>((set) => ({
   weight: 0,
   onboarded: false,
   updateTasksSignal: 0,
-  setClassGeneratedWeek: (classGeneratedWeek) => set({classGeneratedWeek}),
-  setPlayerTitle: (playerTitle) => set({playerTitle}),
-  setUpdateTaskSignal: (updateTasksSignal) => set({ updateTasksSignal }),
   updateSkillBookSignal: 0,
+  currentRoadmap: '',
+  roadmapProgress: [],
+  currentDungeon: {},
+  setCurrentDungeon: (currentDungeon) => set({currentDungeon}),
+  setCurrentRoadmap: (currentRoadmap) => set({currentRoadmap}),
+  setClassGeneratedWeek: (classGeneratedWeek) => set({ classGeneratedWeek }),
+  setPlayerTitle: (playerTitle) => set({ playerTitle }),
+  setUpdateTaskSignal: (updateTasksSignal) => set({ updateTasksSignal }),
   setUpdateSkillBookSignal: (updateSkillBookSignal) => set({ updateSkillBookSignal }),
   setOnboarded: (onboarded) => set({ onboarded }),
   setIcon: (icon) => set({ icon }),
@@ -70,6 +84,7 @@ export const usePlayerDataStore = create<PlayerDataStore>((set) => ({
   setUsername: (username) => set({ username }),
   setHeight: (height) => set({ height }),
   setWeight: (weight) => set({ weight }),
+  setRoadmapProgress: (roadmapProgress) => set({ roadmapProgress }),
 }));
 
 // Store for Coins and Streak Management

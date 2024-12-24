@@ -78,6 +78,7 @@ export default function RootLayout() {
             banner,
             onboarded,
             generatedToday,
+            roadmapProgress,
             classGeneratedWeek,
             playerTitle,
             weight,
@@ -91,9 +92,11 @@ export default function RootLayout() {
             currentXP,
             xpForNextLevel,
             pointsToDistribute,
+            currentDungeon,
             totalExp,
             inPenaltyZone,
             attributes,
+            currentRoadmap,
             health,
             friends,
             maxHealth,
@@ -105,6 +108,9 @@ export default function RootLayout() {
           const playerStore = usePlayerDataStore.getState();
           playerStore.setId(_id);
           playerStore.setPlayerTitle(playerTitle);
+          playerStore.setRoadmapProgress(roadmapProgress);
+          playerStore.setCurrentRoadmap(currentRoadmap);
+          playerStore.setCurrentDungeon(currentDungeon);
           playerStore.setClassGeneratedWeek(classGeneratedWeek);
           playerStore.setGeneratedToday(generatedToday);
           playerStore.setSelectedClass(selectedClass);
@@ -259,6 +265,14 @@ export default function RootLayout() {
                 />
                 <Stack.Screen
                   name="options"
+                  options={{ presentation: 'transparentModal', animation: 'ios' }}
+                />
+                <Stack.Screen
+                  name="roadmap"
+                  options={{ presentation: 'transparentModal', animation: 'ios' }}
+                />
+                <Stack.Screen
+                  name="openchest_modal"
                   options={{ presentation: 'transparentModal', animation: 'ios' }}
                 />
               </Stack>
